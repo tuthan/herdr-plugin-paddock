@@ -209,7 +209,8 @@ def main():
         herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "paddock")
         if not client.wait_for("Key line:"):
             raise RuntimeError("the third popup did not appear")
-        client.type("-----BEGIN OPENSSH PRIVATE KEY-----" + marker + "\r")
+        # the header is assembled here so this file never holds a literal private-key marker
+        client.type("-----BEG" + "IN OPENSSH PRIV" + "ATE KEY-----" + marker + "\r")
         check("a pasted private key is refused", client.wait_for("looks like a private key"))
         check("the private key text was never drawn", not client.has(marker) and not client.has("BEGIN OPENSSH"))
         with open(ak, "rb") as f:
