@@ -444,6 +444,24 @@ class Limits(unittest.TestCase):
             self.assertEqual("refused", self.rig.ask(b"A" * 5000), n)
         self.assertEqual("busy", self.wrong())
 
+    def test_non_ascii_lines_count_like_any_other_malformed_line(self):
+        rig = Rig(rate_limit=3)
+        self.addCleanup(rig.close)
+        sid = rig.sid
+        lines = [("%s status %s" % (V, sid)).encode() + b"\xff", b"\xc3\xa9", ("%s key %s %s" % (V, sid, GOOD_LINE)).encode() + "é".encode()] * 4
+        with mock.patch.object(pp, "parse_key_line", wraps=pp.parse_key_line) as validator:
+            words = [rig.ask(line + b"\n") for line in lines]
+        self.assertEqual(["refused"] * 3 + ["busy"] * 9, words, "the fourth counted request in a minute is limited, whatever bytes it is made of")
+        validator.assert_not_called()  # non-ASCII never reaches the key check
+        self.assertIsNone(rig.listener.held)
+        self.assertEqual("none", rig.status(), "a correct status poll is still free and answered")
+
+    def test_non_ascii_and_ascii_garbage_share_one_budget(self):
+        rig = Rig(rate_limit=3)
+        self.addCleanup(rig.close)
+        self.assertEqual(["refused", "refused", "refused", "busy"], [rig.ask(b"hello\n"), rig.ask(b"\xff\n"), rig.ask(b"hello\n"), rig.ask(b"\xff\n")])
+        self.assertEqual("busy", rig.ask(b"hello\n"))
+
     def test_the_limit_is_a_rolling_minute(self):
         for _ in range(6):
             self.wrong()

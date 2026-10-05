@@ -89,7 +89,7 @@ a phone whose key is not the one approved is told `rejected`.
 ## Limits
 
 - **Rate:** at most **12 counted requests per source address per rolling 60 seconds**. Counted are every `key` request (valid or
-  not), every request with a wrong `sid`, and every malformed or oversize line. **Not counted: a `status` request with the
+  not), every request with a wrong `sid`, and every malformed or oversize line (a line with a non-ASCII byte is malformed). **Not counted: a `status` request with the
   correct `sid`**, so a phone polling every 2 seconds is never throttled, and a throttled address still gets real answers to its
   correct status polls. A counted request over the limit is answered `busy` without being looked at, and nothing is stored.
   (A phone sends one `key`, then polls `status`; it resends the key only when `status` says `none`, which is why only keys are

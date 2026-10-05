@@ -781,7 +781,10 @@ class PairListener(object):
         """(verb, word) for one request line (bytes, without its "\\n"). Every failure is `refused`; nothing is echoed."""
         verb = "invalid"
         try:
-            text = line.decode("ascii")
+            try:
+                text = line.decode("ascii")
+            except UnicodeDecodeError:  # never a correct status poll and never for the key check: it counts like any other malformed line
+                return ("invalid", "refused") if self._admit(source) else ("limited", "busy")
             version, _, rest = text.partition(" ")
             if version == WIRE_VERSION:
                 verb, _, rest = rest.partition(" ")
