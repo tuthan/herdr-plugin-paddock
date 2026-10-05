@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The herdr action's command: open this plugin's popup for `authorize-phone` or `show-pairing`.
+"""The herdr action's command: open this plugin's popup for `authorize-phone`, `show-pairing` or `pair`.
 
 A herdr action has no terminal and no standard input (S1 in the Paddock evidence), so it cannot ask for a pasted line itself.
 It opens the plugin pane of the same name, which does. Extra arguments go to `herdr plugin pane open` unchanged (for example
@@ -10,7 +10,7 @@ import os
 import subprocess
 import sys
 
-ENTRYPOINTS = ("authorize-phone", "show-pairing")
+ENTRYPOINTS = ("authorize-phone", "show-pairing", "pair")
 
 
 def main(argv=None):

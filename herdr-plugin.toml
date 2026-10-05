@@ -2,7 +2,7 @@ id = "paddock"
 name = "Paddock"
 version = "0.1.0"
 min_herdr_version = "0.9.1"
-description = "Set up a phone for Paddock, an independent Android monitor for herdr: authorize its SSH key and show a pairing link. Ships the two host scripts the app uses."
+description = "Set up a phone for Paddock, an independent Android monitor for herdr: authorize its SSH key, show a pairing link, or pair a phone in one popup (LAN listener, webcam or paste, approved by fingerprint). Ships the two host scripts the app uses."
 platforms = ["linux"]
 
 # A herdr action has no terminal and no stdin, so each action opens the popup of the same name, which has both.
@@ -15,6 +15,11 @@ command = ["python3", "bin/open_pane.py", "authorize-phone"]
 id = "show-pairing"
 title = "Paddock: show the pairing link"
 command = ["python3", "bin/open_pane.py", "show-pairing"]
+
+[[actions]]
+id = "pair"
+title = "Paddock: pair a phone"
+command = ["python3", "bin/open_pane.py", "pair"]
 
 [[panes]]
 id = "authorize-phone"
@@ -31,3 +36,11 @@ placement = "popup"
 width = "90%"
 height = "90%"
 command = ["python3", "bin/show_pairing.py"]
+
+[[panes]]
+id = "pair"
+title = "Paddock: pair a phone"
+placement = "popup"
+width = "90%"
+height = "90%"
+command = ["python3", "bin/pair.py"]

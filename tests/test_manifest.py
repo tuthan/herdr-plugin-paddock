@@ -32,7 +32,9 @@ class Manifest(unittest.TestCase):
         self.assertEqual(["linux"], m["platforms"])
         actions = {a["id"]: a for a in m["actions"]}
         panes = {p["id"]: p for p in m["panes"]}
-        self.assertEqual({"authorize-phone", "show-pairing"}, set(actions))
+        self.assertEqual({"authorize-phone", "show-pairing", "pair"}, set(actions))
+        self.assertEqual(3, len(m["actions"]))
+        self.assertEqual(3, len(m["panes"]))
         self.assertEqual(set(actions), set(panes), "each action opens the pane of the same name")
         for aid, a in actions.items():
             # argv, no shell; the script exists relative to the plugin root (herdr runs commands from there)
@@ -44,6 +46,9 @@ class Manifest(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, p["command"][1])))
         self.assertEqual("bin/authorize_phone.py", panes["authorize-phone"]["command"][1])
         self.assertEqual("bin/show_pairing.py", panes["show-pairing"]["command"][1])
+        self.assertEqual("bin/pair.py", panes["pair"]["command"][1])
+        self.assertEqual("Paddock: pair a phone", actions["pair"]["title"])
+        self.assertEqual(("90%", "90%"), (panes["pair"]["width"], panes["pair"]["height"]))
         for ident in list(actions) + list(panes):
             self.assertRegex(ident, r"^[A-Za-z0-9:_-]+$", "action and pane ids may not contain dots")
 

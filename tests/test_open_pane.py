@@ -35,7 +35,7 @@ class OpenPane(unittest.TestCase):
 
     def test_it_opens_the_pane_of_the_same_name_through_the_herdr_binary_herdr_names(self):
         self.fake_herdr('{"id":"x","result":{"type":"ok"}}')
-        for entry in ("authorize-phone", "show-pairing"):
+        for entry in ("authorize-phone", "show-pairing", "pair"):
             r = self.run_it(entry, HERDR_PLUGIN_ID="paddock")
             self.assertEqual(0, r.returncode, r.stderr)
             self.assertEqual(["plugin", "pane", "open", "--plugin", "paddock", "--entrypoint", entry], self.argv())
@@ -52,9 +52,9 @@ class OpenPane(unittest.TestCase):
         self.assertIn("a popup pane is already open", r.stderr.decode())
         self.assertIn("ui_busy", r.stderr.decode())
 
-    def test_only_the_two_known_entrypoints_are_accepted(self):
+    def test_only_the_three_known_entrypoints_are_accepted(self):
         self.fake_herdr('{"result":{"type":"ok"}}')
-        for args in ([], ["--help"], ["rm"], ["authorize-phone;id"], ["../x"]):
+        for args in ([], ["--help"], ["rm"], ["authorize-phone;id"], ["../x"], ["pair;id"], ["Pair"]):
             with self.subTest(args):
                 r = self.run_it(*args)
                 self.assertEqual(2, r.returncode)
