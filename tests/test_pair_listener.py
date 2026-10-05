@@ -375,9 +375,11 @@ class Limits(unittest.TestCase):
 
     def test_the_defaults_are_the_documented_numbers(self):
         self.assertEqual((12, 60.0, 8, 5.0, 120.0, 4096), (pp.RATE_LIMIT, pp.RATE_WINDOW_S, pp.MAX_CONNECTIONS, pp.REQUEST_TIMEOUT_S, pp.PAIR_WINDOW_S, pp.MAX_REQUEST_BYTES))
+        self.assertEqual((2, 2.0), (pp.MAX_PER_SOURCE, pp.IDLE_TIMEOUT_S))
         l = pp.PairListener("127.0.0.1", pp.new_sid())
         self.addCleanup(l.close)
         self.assertEqual((12, 60.0, 8, 5.0, 120.0), (l.rate_limit, l.rate_window_s, l.max_connections, l.request_timeout_s, l.window_s))
+        self.assertEqual((2, 2.0), (l.max_per_source, l.idle_timeout_s))
 
     def wrong(self, source=None):
         """A request that counts against the limit: a status with a wrong handle."""
@@ -493,6 +495,9 @@ class Limits(unittest.TestCase):
         self.assertEqual(["refused", "refused", "busy"], [rig.status(sid=pp.new_sid()) for _ in range(3)])
 
     def test_at_most_eight_connections_at_once_and_the_ninth_is_closed_without_a_reply(self):
+        rig = Rig(rate_limit=pp.RATE_LIMIT, max_per_source=pp.MAX_CONNECTIONS)  # one address may hold all eight here: the per-source cap is the next tests'
+        self.addCleanup(rig.close)
+        self.rig = rig
         held = [self.rig.connect() for _ in range(8)]
         ninth = self.rig.connect()
         self.rig.pump(5)
@@ -510,15 +515,86 @@ class Limits(unittest.TestCase):
         data, _ = self.rig.read(tenth)
         self.assertEqual(b"paddock-pair/1 none\n", data)
 
-    def test_a_connection_that_sends_nothing_is_dropped_after_five_seconds_without_a_reply(self):
+    def test_a_connection_that_sends_nothing_is_dropped_after_two_seconds_without_a_reply(self):
         s = self.rig.connect()
         self.rig.pump()
-        self.clock.advance(4.9)
+        self.clock.advance(1.9)
         data, closed = self.rig.read(s, rounds=5)
         self.assertEqual((b"", False), (data, closed))
         self.clock.advance(0.2)
         data, closed = self.rig.read(s, rounds=20)
         self.assertEqual((b"", True), (data, closed))
+
+    def test_a_request_that_is_arriving_keeps_the_whole_five_seconds(self):
+        s = self.rig.connect()
+        line = ("%s status %s\n" % (V, self.rig.sid)).encode()
+        s.sendall(line[:7])
+        self.rig.pump()
+        self.clock.advance(4.9)  # far past the idle limit, but a byte has arrived
+        data, closed = self.rig.read(s, rounds=5)
+        self.assertEqual((b"", False), (data, closed))
+        s.sendall(line[7:])
+        data, closed = self.rig.read(s)
+        self.assertEqual((b"paddock-pair/1 none\n", True), (data, closed))
+
+    def test_a_silent_connection_is_dropped_at_two_seconds_even_while_others_are_served(self):
+        silent = self.rig.connect()
+        self.rig.pump()
+        self.clock.advance(1.0)
+        self.assertEqual("none", self.rig.status())
+        self.clock.advance(1.1)
+        data, closed = self.rig.read(silent, rounds=20)
+        self.assertEqual((b"", True), (data, closed))
+
+    def second_source(self):
+        try:
+            self.rig.connect("127.0.0.2").close()
+        except OSError:
+            self.skipTest("this host does not route all of 127/8 to loopback")
+
+    def test_one_source_holding_silent_connections_cannot_starve_another_source(self):
+        self.second_source()
+        for _ in range(3):  # the attack: eight silent connections from one address, again as soon as they are dropped
+            for _ in range(8):
+                self.rig.connect()
+            self.rig.pump(5)
+            self.assertEqual("none", self.rig.status(source="127.0.0.2"), "a phone at another address is answered")
+            self.clock.advance(2.1)
+            self.rig.pump(5)
+
+    def test_a_third_connection_from_one_source_is_closed_without_a_reply_and_takes_no_global_slot(self):
+        self.second_source()
+        rig = Rig(rate_limit=pp.RATE_LIMIT, max_connections=3)
+        self.addCleanup(rig.close)
+        first, second = rig.connect(), rig.connect()
+        third = rig.connect()
+        rig.pump(5)
+        data, closed = rig.read(third, rounds=20)
+        self.assertEqual((b"", True), (data, closed), "the same address's third connection is closed at once")
+        # of the three global slots two are held by the first address and the refused one took none, so another address still has the third
+        self.assertEqual("none", rig.status(source="127.0.0.2"))
+        # and the first address has a place again as soon as one of its two is gone
+        first.close()
+        rig.pump(5)
+        self.assertEqual("none", rig.status())
+        data, closed = rig.read(second, rounds=3)
+        self.assertEqual((b"", False), (data, closed), "the one that stayed was not touched")
+
+    def test_the_per_source_cap_counts_a_connection_that_has_been_answered_until_it_closes(self):
+        self.second_source()
+        a, b = self.rig.connect(), self.rig.connect()
+        for s in (a, b):
+            s.sendall(("%s status %s\n" % (V, self.rig.sid)).encode())
+        for s in (a, b):
+            data, closed = self.rig.read(s, rounds=3)
+            self.assertEqual(b"paddock-pair/1 none\n", data)  # answered, and the client has not closed its end yet
+        third = self.rig.connect()
+        self.rig.pump(5)
+        data, closed = self.rig.read(third, rounds=20)
+        self.assertEqual((b"", True), (data, closed))
+        a.close()
+        self.rig.pump(5)
+        self.assertEqual("none", self.rig.status())
 
     def test_a_slow_client_that_never_finishes_its_line_is_dropped_without_a_reply(self):
         s = self.rig.connect()

@@ -15,9 +15,12 @@ word ever travels from the host to the phone.
 - One request per connection, one reply, then the connection is closed. The server sends its line, half-closes its side, reads
   and discards anything else the client sends, and drops the connection when the client closes or after 5 seconds.
 - A request is **one line**, ASCII, terminated by `\n` (not `\r\n`), at most **4096 bytes including the `\n`**. The whole line
-  must arrive within **5 seconds of connecting**; a connection that is idle or slow past that is closed with no reply. Bytes
-  after the first `\n` are ignored.
-- The server accepts at most **8 simultaneous connections**; a ninth is closed at once with no reply.
+  must arrive within **5 seconds of connecting**, and the first byte within **2 seconds**: a connection that has sent nothing after
+  2 seconds, or has not finished its line after 5, is closed with no reply. Bytes after the first `\n` are ignored.
+- The server accepts at most **8 simultaneous connections**, and at most **2 from one source address**; a connection over either
+  limit is closed at once with no reply. One that is refused takes no slot, so one address holding silent connections can never
+  use up the 8 (it holds at most 2, for at most 2 seconds each) and a phone at another address is always served. A connection
+  counts until it is closed, answered or not, so a client closes its end after it has read its reply. Clients behind one NAT share an address (the Android emulator's all arrive from 127.0.0.1).
 
 ## Requests
 
@@ -94,7 +97,8 @@ a phone whose key is not the one approved is told `rejected`.
   correct status polls. A counted request over the limit is answered `busy` without being looked at, and nothing is stored.
   (A phone sends one `key`, then polls `status`; it resends the key only when `status` says `none`, which is why only keys are
   counted.) At most 1024 source addresses are tracked; when the table is full, new addresses' counted requests get `busy`.
-- **Size and time:** 4096 bytes and 5 seconds per request; 8 simultaneous connections (above).
+- **Size and time:** 4096 bytes and 5 seconds per request (2 seconds to the first byte); 8 simultaneous connections, 2 per source
+  address (above).
 - **Nothing is logged but the verb and the word** (`key -> pending`). Never the request, the key line or the address.
 
 ## Where it listens
@@ -117,6 +121,7 @@ of the popup. It is a session handle, not a key: it names this run, and it is no
 
 - Send `key` once. If the reply is lost, ask `status`: `none` means the key never arrived (send it again, it is safe), `pending`
   or a final word means it did.
+- Use one connection at a time and close it once you have the reply: more than 2 at once from one address are closed unanswered.
 - Poll `status` as often as is useful; every 2 seconds is fine. Stop on `ok`, `rejected`, `expired` or `refused`.
 - `busy` after your own `key` means a different key is already held, or you sent more than 12 counted requests in a minute.
   A correct `status` is never `busy`.

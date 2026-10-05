@@ -674,7 +674,9 @@ WIRE_VERSION = "paddock-pair/1"
 REPLY_WORDS = ("pending", "ok", "rejected", "expired", "refused", "busy", "none")
 MAX_REQUEST_BYTES = 4096        # one request line, its "\n" included
 REQUEST_TIMEOUT_S = 5.0         # from connecting to the end of the line; also the longest a connection is kept
+IDLE_TIMEOUT_S = 2.0            # a connection that has sent no byte by then is closed (a phone sends at once)
 MAX_CONNECTIONS = 8
+MAX_PER_SOURCE = 2              # of those, from one source address (a phone has one connection at a time; the emulator's are all 127.0.0.1)
 RATE_LIMIT = 12                 # counted requests per source address per rolling RATE_WINDOW_S (a correct-sid status poll is not counted)
 RATE_WINDOW_S = 60.0
 PAIR_WINDOW_S = 120.0
@@ -682,13 +684,14 @@ MAX_TRACKED_SOURCES = 1024
 
 
 class _Conn(object):
-    __slots__ = ("sock", "source", "buf", "deadline", "replied")
+    __slots__ = ("sock", "source", "buf", "deadline", "idle_deadline", "replied")
 
-    def __init__(self, sock, source, deadline):
+    def __init__(self, sock, source, deadline, idle_deadline):
         self.sock = sock
         self.source = source
         self.buf = b""
         self.deadline = deadline
+        self.idle_deadline = idle_deadline  # None once the first byte has arrived
         self.replied = False
 
 
@@ -698,14 +701,15 @@ class PairListener(object):
     It holds at most one key (a [KeyLine]) and answers with a word from REPLY_WORDS; nothing but that word ever leaves the host.
     Register it on the popup's selector with the [selector] argument (it adds its own sockets, with callables as `data`, and
     the caller runs `key.data(key.fileobj, mask)`), or call poll() to let it run its own selector. Call tick() regularly: it
-    drops connections that took longer than REQUEST_TIMEOUT_S. [clock] is injectable for tests.
+    drops connections that took longer than REQUEST_TIMEOUT_S, or sent nothing in IDLE_TIMEOUT_S. [clock] is injectable for tests.
 
     The popup decides: adopt() hands it a key that arrived by another intake, finish() records the owner's decision. The
     request line is never logged: [log] holds only `verb -> word`.
     """
 
     def __init__(self, bind_ip, sid, clock=time.monotonic, window_s=PAIR_WINDOW_S, selector=None, port=0, max_connections=MAX_CONNECTIONS,
-                 rate_limit=RATE_LIMIT, rate_window_s=RATE_WINDOW_S, request_timeout_s=REQUEST_TIMEOUT_S):
+                 rate_limit=RATE_LIMIT, rate_window_s=RATE_WINDOW_S, request_timeout_s=REQUEST_TIMEOUT_S, max_per_source=MAX_PER_SOURCE,
+                 idle_timeout_s=IDLE_TIMEOUT_S):
         if not isinstance(sid, str) or not SID_RE.match(sid):
             raise Refusal("The pairing handle must be 22 characters from A-Z, a-z, 0-9, _ and -.")
         problem = listen_address_problem(bind_ip)
@@ -715,6 +719,8 @@ class PairListener(object):
         self._clock = clock
         self.window_s = window_s
         self.max_connections = max_connections
+        self.max_per_source = max_per_source
+        self.idle_timeout_s = idle_timeout_s
         self.rate_limit = rate_limit
         self.rate_window_s = rate_window_s
         self.request_timeout_s = request_timeout_s
@@ -846,11 +852,12 @@ class PairListener(object):
                 return
             except OSError:
                 return
-            if len(self._conns) >= self.max_connections:
-                conn_sock.close()  # no reply: the extra connection is simply closed
+            if len(self._conns) >= self.max_connections or sum(c.source == addr[0] for c in self._conns.values()) >= self.max_per_source:
+                conn_sock.close()  # no reply: the extra connection is simply closed, and never takes a slot (one address cannot fill them all)
                 continue
             conn_sock.setblocking(False)
-            self._conns[conn_sock] = _Conn(conn_sock, addr[0], self._clock() + self.request_timeout_s)
+            now = self._clock()
+            self._conns[conn_sock] = _Conn(conn_sock, addr[0], now + self.request_timeout_s, now + self.idle_timeout_s)
             self._sel.register(conn_sock, selectors.EVENT_READ, self._on_readable)
 
     def _on_readable(self, sock, mask=None):
@@ -867,6 +874,7 @@ class PairListener(object):
         if not data:  # the client closed: after the reply that is the normal end, before it there was no request
             self._drop(conn)
             return
+        conn.idle_deadline = None
         if conn.replied:
             return  # what a client sends after its request is read and thrown away, until it closes or the deadline
         conn.buf += data
@@ -904,10 +912,11 @@ class PairListener(object):
     # -- driving ---------------------------------------------------------------------------------------------------------------
 
     def tick(self):
-        """Drops every connection older than the request timeout, replied or not (a slow or idle client gets no reply)."""
+        """Drops every connection older than the request timeout, replied or not, and every one that has sent nothing within the
+        idle timeout (a slow or idle client gets no reply)."""
         now = self._clock()
         for conn in list(self._conns.values()):
-            if now >= conn.deadline:
+            if now >= conn.deadline or (conn.idle_deadline is not None and now >= conn.idle_deadline):
                 self._drop(conn)
 
     def poll(self, timeout=0.0):
