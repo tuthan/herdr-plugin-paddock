@@ -85,8 +85,9 @@ a phone whose key is not the one approved is told `rejected`.
 - The window is **120 seconds** by default (`--timeout`), from the moment the popup builds its link. It covers waiting for a key
   and the owner's answer to the prompt: there is no approving after it. A refused pasted or camera line ends the popup's run, and
   with it the window, at once.
-- `ok` and `rejected` are answered to `status` (and to the same key sent again) for as long as the listener is open, so a phone
-  that lost the reply can ask again. In the terminal popup that is until Enter closes the popup, or 10 seconds after the window
+- `ok` and `rejected` are answered to `status` for as long as the listener is open, so a phone that lost the reply can ask
+  again. (The same key sent again gets its state only inside the window; after it, rule 1 above answers `expired`. A client that
+  lost a reply asks `status` first, as the Paddock app does.) In the terminal popup that is until Enter closes the popup, or 10 seconds after the window
   ends, whichever comes first. In a script run (`--stdin`) it is until the phone has been told the final word once, for at
   most 6 seconds. The listener is also closed when the popup exits or is closed.
 
