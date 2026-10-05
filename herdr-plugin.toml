@@ -1,6 +1,6 @@
 id = "paddock"
 name = "Paddock"
-version = "0.1.0"
+version = "0.2.0"
 min_herdr_version = "0.9.1"
 description = "Set up a phone for Paddock, an independent Android monitor for herdr: authorize its SSH key, show a pairing link, or pair a phone in one popup (LAN listener, webcam or paste, approved by fingerprint). Ships the two host scripts the app uses."
 platforms = ["linux"]

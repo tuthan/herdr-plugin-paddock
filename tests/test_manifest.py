@@ -18,7 +18,7 @@ def text():
 class Manifest(unittest.TestCase):
     def test_the_required_fields_and_the_pinned_herdr_version(self):
         t = text()
-        for field, value in (("id", "paddock"), ("name", "Paddock"), ("version", "0.1.0"), ("min_herdr_version", "0.9.1")):
+        for field, value in (("id", "paddock"), ("name", "Paddock"), ("version", "0.2.0"), ("min_herdr_version", "0.9.1")):
             self.assertRegex(t, r'(?m)^%s = "%s"$' % (field, re.escape(value)))
 
     def test_no_build_startup_or_event_hooks_so_nothing_runs_unless_the_user_picks_an_action(self):

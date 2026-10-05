@@ -4,13 +4,13 @@ Paddock is an independent Android app that watches and answers the agents in you
 **It is not affiliated with, endorsed by or sponsored by herdr or its authors.** This plugin is the small host-side half of
 setting a phone up: it makes enrolling a phone one step instead of several, and it ships the two host scripts the app uses.
 
-Status: 0.1.0, not yet published. The licence is not chosen yet (see [LICENSE-PENDING.md](LICENSE-PENDING.md)); nothing here may
+Status: 0.2.0, not yet published. The licence is not chosen yet (see [LICENSE-PENDING.md](LICENSE-PENDING.md)); nothing here may
 be reused until it is.
 
 ## Install
 
 ```sh
-herdr plugin install <owner>/herdr-plugin-paddock --ref v0.1.0
+herdr plugin install <owner>/herdr-plugin-paddock --ref v0.2.0
 ```
 
 `<owner>` is a placeholder until the repository is published. Run it in an interactive terminal: herdr shows a preview of the
@@ -21,7 +21,7 @@ runs unless you choose an action. Needs herdr 0.9.1 or newer and Python 3.8 or n
 
 ## What it does
 
-Two actions, each opening a small popup (herdr actions have no terminal, so the action opens the pane that has one):
+Three actions, each opening a small popup (herdr actions have no terminal, so the action opens the pane that has one):
 
 - **Paddock: authorize a phone** (`paddock.authorize-phone`). Paste the one line Paddock copies under "Public key to authorize".
   The line is checked, then appended to `~/.ssh/authorized_keys`, once. What you paste is not shown on screen.
@@ -29,6 +29,9 @@ Two actions, each opening a small popup (herdr actions have no terminal, so the 
   SSH port, user, herdr session and the SSH host-key fingerprints, and a QR code of it when `qrencode` is installed. Open the link
   on the phone: Paddock fills in Add a machine and, at the first connection, shows the fingerprint the server presents next to the
   ones in the link. You still tap Trust, and a fingerprint that is not in the link is refused.
+- **Paddock: pair a phone** (`paddock.pair`). The one-popup version of the two above: it shows the pairing link and its QR, takes the
+  phone's public key from whichever of three intakes answers first, shows the key's fingerprint, and writes `authorized_keys` only
+  after you approve. See "Pair a phone" below.
 
 Run one from a pane in the herdr session you want, with `herdr plugin action invoke authorize-phone --plugin paddock` (the popup
 opens on the herdr screen, so someone has to be attached to type into it), or bind a key in `config.toml`:
@@ -41,8 +44,50 @@ command = "paddock.authorize-phone"
 description = "authorize a phone for Paddock"
 ```
 
-Both programs also run on their own, which is how the tests drive them:
-`python3 bin/authorize_phone.py --stdin < keyline`, `python3 bin/show_pairing.py --no-prompt --host box.example.net`.
+The programs also run on their own, which is how the tests drive them:
+`python3 bin/authorize_phone.py --stdin < keyline`, `python3 bin/show_pairing.py --no-prompt --host box.example.net`,
+`printf '%s\na\n' "$keyline" | python3 bin/pair.py --stdin --no-listen --no-camera --home /tmp/h` (the key line, then the answer).
+
+## Pair a phone
+
+`paddock.pair` opens one popup that does the whole enrollment. It prints the pairing link and, when `qrencode` is installed, its QR.
+Then it waits (120 seconds by default, `--timeout`) for **one** complete key line from whichever intake answers first, and closes
+the others:
+
+- **The phone's listener.** In Add a machine, the app's **Send the key** control sends its public key to the address and port
+  the link names. The popup opens a TCP listener on this machine's LAN address and a random port, and the link carries that port and
+  a session handle (`&pair=<port>&sid=<handle>`). It is LAN-only (it refuses a public address and `0.0.0.0`), optional
+  (`--no-listen`, or `--listen-ip ADDRESS` to choose the address), holds one key, replies with one word (`pending`, `ok`, `rejected`,
+  `expired`, `refused`, `busy` or `none`) and is closed when the popup is. The channel is plaintext on purpose: what it carries is a
+  public key and a session handle, nothing secret, and the protection is the fingerprint comparison below. It never sends the phone
+  a credential, a file or any fact about this machine. The wire is in [PROTOCOL.md](PROTOCOL.md).
+- **The webcam.** The phone shows its key as a QR (**Show as QR**) and `zbarcam --raw --oneshot --nodisplay --prescale=640x480
+  <device>` reads it. **The camera is not used until you press Enter in the popup**, which says so beforehand; it is switched off
+  as soon as a code is read, another intake answers, the time is up or the popup is closed. It reads `/dev/video0` unless
+  `--camera-device PATH` says otherwise; `--no-camera` removes the intake. Without `zbarcam` (the `zbar` package) or a camera the
+  popup says the intake is absent.
+- **Paste.** As in authorize-phone: paste the key line and press Enter. Echo is off, so the line is never drawn.
+
+Whatever arrives is checked exactly as `authorize-phone` checks a pasted line (one `ecdsa-sha2-nistp256` line, no options, no private
+keys, at most 1024 bytes). A refusal is explained without repeating what was received, and nothing is written. A second, different
+key is ignored (the listener answers it `busy`).
+
+**Approving.** The popup shows the key's SHA-256 fingerprint with its first eight characters set off, and asks `[R]eject (default) /
+[a]pprove`. Compare it with the fingerprint the phone shows. Only an `a` and Enter approves; an empty line, any other answer, the end
+of input or the time running out is Reject, and nothing is written. On approval the same function `authorize-phone` uses appends the
+line to `~/.ssh/authorized_keys`, and the popup prints the file and the fingerprint and tells you to press Connect on the phone. There
+is no code to type because SSH already pins this host's identity (the link names its host-key fingerprints) and what is delivered is
+the phone's public key; the one attack left is another key being put in its place, and the fingerprint comparison catches it.
+
+**What it never runs.** No shell, no command from the phone, nothing that is received is ever executed or written anywhere but
+`authorized_keys`, and then only the validated line after your approval. The camera and the listener are the only things it opens, and
+only for the time and in the way described here. No key material is printed or logged: only the fingerprint.
+
+Options (for scripts and tests; the popup takes none): `--timeout SECONDS`, `--no-qr`, `--no-camera`, `--camera-device PATH`,
+`--camera-now` (switch the camera on at once), `--no-listen`, `--listen-ip ADDRESS`, `--stdin` (the key line, then the answer, from
+standard input; the listener opens only with `--listen-ip`), `--ssh-dir`, `--host`, `--port`, `--user`, `--home`. The exit code is 0
+when a key was written (or was already there), 1 for Reject or no key in time, 2 for a refused key or bad option, 3 or 4 when
+`authorize` refuses or fails.
 
 ## What it will and will not write
 
@@ -77,5 +122,8 @@ python3 tools/check_pins.py --app-repo /path/to/paddock-android
 
 ## Privacy
 
-No analytics, no network access, no files read or written outside `~/.ssh/authorized_keys` (written), `/etc/ssh` host key and
-`sshd_config` files (read) and the herdr plugin directories. The repository holds no secret, key, host name or address.
+No analytics, no outgoing network connections, no files read or written outside `~/.ssh/authorized_keys` (written), `/etc/ssh` host
+key and `sshd_config` files (read) and the herdr plugin directories. The one thing that touches the network is the `pair` popup's
+listener, and only while that popup is open: LAN-only, optional (`--no-listen`), plaintext, and it carries only a public key and a
+session handle in, and one result word out. The webcam is read only after you press Enter in that popup. The repository holds no
+secret, key, host name or address.

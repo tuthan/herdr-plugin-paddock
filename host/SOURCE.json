@@ -1,6 +1,6 @@
 {
   "plugin": "paddock",
-  "plugin_version": "0.1.0",
+  "plugin_version": "0.2.0",
   "pins": "A mirror of the relay and control entries in host/SOURCE.json of the Paddock app repository. tools/check_pins.py compares every entry with the app repository and with the files here; the app refuses a script whose hash it does not know.",
   "relay": "paddock-relay.py",
   "version": 1,
