@@ -10,7 +10,7 @@ import unittest
 from unittest import mock
 
 from support import GOOD_BODY, GOOD_LINE, OTHER_LINE
-from test_keys import HOSTILE, MARK
+from test_keys import HOSTILE, MARK, non_canonical_bodies
 import paddock_plugin as pp
 
 V = "paddock-pair/1"
@@ -192,6 +192,13 @@ class Rules(ListenerCase):
         self.assertGreater(tried, 35)
         self.assertIsNone(self.l.held)
         self.assertEqual("none", self.rig.status())
+
+    def test_a_non_canonical_base64_key_is_refused_over_the_wire_and_nothing_is_stored(self):
+        for body in non_canonical_bodies():
+            with self.subTest(body=body[-4:]):
+                self.assertEqual("refused", self.rig.key("ecdsa-sha2-nistp256 " + body + " paddock@phone"))
+        self.assertIsNone(self.l.held)
+        self.assertEqual("pending", self.rig.key(), "the canonical spelling of the same key is held")
 
     def test_a_line_over_4096_bytes_is_refused_and_a_short_one_is_not_waited_for(self):
         self.assertEqual("refused", self.rig.ask(b"A" * 4097 + b"\n"))

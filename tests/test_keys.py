@@ -84,6 +84,18 @@ HOSTILE = [
 ]
 
 
+def non_canonical_bodies():
+    """The good key's base64 with each of the other three last characters that decode to the same blob (the last character of a
+    padded body carries bits that decoding drops). OpenSSH, and the app's re-encoding parser, refuse all three."""
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    assert GOOD_BODY.endswith("=") and not GOOD_BODY.endswith("==")  # two spare bits in the last character
+    head, last = GOOD_BODY[:-2], GOOD_BODY[-2]
+    first = alphabet.index(last) & ~3
+    out = [head + alphabet[first + n] + "=" for n in range(4) if alphabet[first + n] != last]
+    assert len(out) == 3 and all(base64.b64decode(b, validate=True) == base64.b64decode(GOOD_BODY) for b in out)
+    return out
+
+
 class ParseKeyLine(unittest.TestCase):
     def test_the_reference_key_line_is_accepted_and_has_the_fingerprint_ssh_keygen_prints(self):
         key = pp.parse_key_line(GOOD_LINE)
@@ -129,6 +141,34 @@ class ParseKeyLine(unittest.TestCase):
                 self.assertNotIn(GOOD_BODY[:30], message, "the refusal repeats the key")
                 self.assertEqual(2, ctx.exception.code)
                 self.assertIn("Nothing was written", message)
+
+    def test_a_non_canonical_base64_key_part_is_refused_and_only_the_canonical_form_passes(self):
+        # b64decode(validate=True) drops the unused trailing bits, so all four spellings decode to one blob; ssh-keygen -l accepts
+        # one of them ("not a public key file" for the rest) and the app re-encodes and compares, so the canonical spelling is the only one
+        for body in non_canonical_bodies():
+            for tail in ("", " paddock@phone"):
+                with self.subTest(body=body[-4:], comment=bool(tail)):
+                    with self.assertRaises(pp.Refusal) as ctx:
+                        pp.parse_key_line("ecdsa-sha2-nistp256 " + body + tail)
+                    self.assertIn("not valid base64", ctx.exception.message)
+                    self.assertIn("Nothing was written", ctx.exception.message)
+                    self.assertNotIn(body, ctx.exception.message)
+        self.assertEqual(GOOD_FINGERPRINT, pp.parse_key_line(GOOD_LINE).fingerprint)
+
+    @unittest.skipUnless(shutil.which("ssh-keygen"), "ssh-keygen not installed")
+    def test_the_canonical_check_agrees_with_ssh_keygen_on_every_spelling(self):
+        with tempfile.TemporaryDirectory() as d:
+            for body in [GOOD_BODY] + non_canonical_bodies():
+                path = os.path.join(d, "k.pub")
+                with open(path, "w") as f:
+                    f.write("ecdsa-sha2-nistp256 " + body + " t@h\n")
+                reads = subprocess.run(["ssh-keygen", "-lf", path], stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode == 0
+                try:
+                    pp.parse_key_line("ecdsa-sha2-nistp256 " + body + " t@h")
+                    accepts = True
+                except pp.Refusal:
+                    accepts = False
+                self.assertEqual(reads, accepts, body[-4:])
 
     def test_a_valid_line_is_never_taken_for_a_private_key(self):
         # The private-key wording is only chosen for input refused anyway, so a key whose text contains a marker is not refused for it.

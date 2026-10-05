@@ -21,7 +21,7 @@ import unittest
 from unittest import mock
 
 from support import BIN, GOOD_BODY, GOOD_FINGERPRINT, GOOD_LINE, OTHER_LINE
-from test_keys import HOSTILE, MARK
+from test_keys import HOSTILE, MARK, non_canonical_bodies
 from test_pairing import FP, parse_link
 import paddock_plugin as pp
 
@@ -554,6 +554,25 @@ class PairStdin(PairCase):
                 self.assertNotIn(MARK, out + err)
                 self.assertNotIn(GOOD_BODY[:30], out + err)
         self.assertGreater(tried, 35)
+
+    def test_the_popup_and_authorize_phone_accept_exactly_the_same_spellings_of_a_key(self):
+        # the canonical body and the three spellings that decode to the same blob: the one rule, applied by both programs
+        seen = {}
+        for body in [GOOD_BODY] + non_canonical_bodies():
+            line = "ecdsa-sha2-nistp256 " + body + " paddock@phone\n"
+            r, out, err = self.run_pair(line + "a\n", "--no-listen", "--no-camera")
+            popup = (r.returncode, self.written())
+            shutil.rmtree(os.path.join(self.home, ".ssh"), ignore_errors=True)
+            a = subprocess.run([sys.executable, os.path.join(BIN, "authorize_phone.py"), "--stdin", "--home", self.home], input=line.encode(),
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
+            authorize = (a.returncode, self.written())
+            shutil.rmtree(os.path.join(self.home, ".ssh"), ignore_errors=True)
+            with self.subTest(body=body[-4:]):
+                self.assertEqual(authorize, popup)
+                self.assertNotIn(body, out + err + a.stdout.decode() + a.stderr.decode())
+            seen[body] = popup[0]
+        self.assertEqual(0, seen[GOOD_BODY])
+        self.assertEqual([2, 2, 2], [seen[b] for b in non_canonical_bodies()])
 
     def test_a_private_key_header_is_refused_without_being_shown(self):
         header = "-----BEG" + "IN OPENSSH PRIV" + "ATE KEY-----" + MARK  # assembled so this file never holds the literal marker

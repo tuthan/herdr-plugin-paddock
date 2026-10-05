@@ -94,7 +94,7 @@ when a key was written (or was already there), 1 for Reject or no key in time, 2
 The only thing this plugin ever writes to `authorized_keys` is one validated phone key line, appended once. Specifically:
 
 - The input must be exactly one line (one trailing line break is fine): `ecdsa-sha2-nistp256 <base64> [comment]`, single
-  spaces, no options in front (`command=`, `from=`, ...), no other key type, and a key part that decodes to a P-256 public key.
+  spaces, no options in front (`command=`, `from=`, ...), no other key type, and a key part that is canonical base64 (it re-encodes to the same text) of a P-256 public key.
   The comment is optional, up to 64 characters from `A-Za-z0-9@._-`. At most 1024 bytes are read.
 - Anything that looks like a private key is refused. Refusals never repeat what was pasted.
 - `~/.ssh` is created with mode 700 and the file with 600 when missing, and both are set to those modes. A newline is added

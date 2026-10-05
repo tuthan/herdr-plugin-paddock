@@ -31,7 +31,7 @@ keyline        = "ecdsa-sha2-nistp256" SP base64 [ SP comment ]
 
 - Fields are separated by single spaces. `keyline` is the **rest of the line** and contains spaces.
 - `keyline` must pass exactly the check `authorize-phone` applies: one line, `ecdsa-sha2-nistp256` only with nothing in front
-  (no `command=`, `from=`, ...), a key part that decodes to a P-256 public key, an optional comment of up to 64 characters from
+  (no `command=`, `from=`, ...), a key part that is canonical base64 (it re-encodes to exactly the text sent, so a spelling that only differs in the unused bits of its last character is refused, as OpenSSH refuses it) of a P-256 public key, an optional comment of up to 64 characters from
   `A-Za-z0-9@._-`, at most 1024 bytes, printable ASCII, and nothing that looks like a private key.
 - `sid` is compared in constant time (`hmac.compare_digest` on the ASCII bytes).
 

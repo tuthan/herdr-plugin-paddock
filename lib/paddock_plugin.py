@@ -121,6 +121,8 @@ def _parse(data):
         blob = base64.b64decode(parts[1], validate=True)
     except Exception:
         raise Refusal("The key part is not valid base64. Nothing was written.")
+    if base64.b64encode(blob).decode() != parts[1]:  # decoding drops the spare bits of the last character; OpenSSH and the app refuse that spelling
+        raise Refusal("The key part is not valid base64. Nothing was written.")
     if len(blob) != BLOB_LENGTH or not blob.startswith(_BLOB):
         raise Refusal("The key part is not a P-256 public key. Nothing was written.")
     comment = parts[2] if len(parts) == 3 else None
