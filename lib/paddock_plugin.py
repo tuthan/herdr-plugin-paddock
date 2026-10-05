@@ -767,6 +767,11 @@ class PairListener(object):
         self.held, self.held_from = key, source
         return True
 
+    def end_window(self):
+        """Ends the window now, for a popup whose run is over with no key to decide (a refused paste or camera read): a key that
+        arrives from here on is told `expired` and is not stored, because nothing will ever prompt for it. A decided key is still answered."""
+        self.deadline = min(self.deadline, self._clock())
+
     def finish(self, approved):
         """Records the owner's decision on the held key: `ok` when [approved] is that key, `rejected` for anything else (or None)."""
         if self.held is None or self._decided:

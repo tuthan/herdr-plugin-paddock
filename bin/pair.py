@@ -344,6 +344,8 @@ class Popup(object):
         if self.refusal:
             where, r = self.refusal
             self.problem("\nRefused (%s): %s\n" % (where, r.message))
+            if self.listener:
+                self.listener.end_window()  # the run is over: a phone key sent now would wait for a prompt that never comes
             return self.finish(r.code)
         if not self.candidate:
             if got:

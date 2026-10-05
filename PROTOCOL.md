@@ -50,7 +50,7 @@ word  = "pending" / "ok" / "rejected" / "expired" / "refused" / "busy" / "none"
 | `pending` | the popup holds the key and the owner has not decided |
 | `ok` | the owner approved and the key is written to `authorized_keys` (the key is written before this word is ever sent) |
 | `rejected` | the owner rejected it, approved a different key, or the write to `authorized_keys` failed (nothing was written) |
-| `expired` | the window ended before the owner decided, or a request arrived after the window |
+| `expired` | the window ended before the owner decided, or a request arrived after the window (the popup also ends the window early when a pasted or camera line is refused and the run is over, so a phone's key after that is `expired`, not held) |
 | `refused` | wrong `sid`, malformed line, wrong or missing version token, oversize line, or a key line that fails the key check; nothing is stored |
 | `busy` | another, different key is held; or the sender is over the rate limit (below) |
 | `none` | `status` before any key has been received |
@@ -83,7 +83,8 @@ a phone whose key is not the one approved is told `rejected`.
 ## Window, and how long an answer stays available
 
 - The window is **120 seconds** by default (`--timeout`), from the moment the popup builds its link. It covers waiting for a key
-  and the owner's answer to the prompt: there is no approving after it.
+  and the owner's answer to the prompt: there is no approving after it. A refused pasted or camera line ends the popup's run, and
+  with it the window, at once.
 - `ok` and `rejected` are answered to `status` (and to the same key sent again) for as long as the listener is open, so a phone
   that lost the reply can ask again. In the terminal popup that is until Enter closes the popup, or 10 seconds after the window
   ends, whichever comes first. In a script run (`--stdin`) it is until the phone has been told the final word once, for at

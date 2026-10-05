@@ -70,7 +70,7 @@ the others:
 
 Whatever arrives is checked exactly as `authorize-phone` checks a pasted line (one `ecdsa-sha2-nistp256` line, no options, no private
 keys, at most 1024 bytes). A refusal is explained without repeating what was received, and nothing is written. A second, different
-key is ignored (the listener answers it `busy`).
+key is ignored (the listener answers it `busy`). A refusal ends the run, and a phone's key that arrives after it is answered `expired`.
 
 **Approving.** The popup shows the key's SHA-256 fingerprint with its first eight characters set off, and asks `[R]eject (default) /
 [a]pprove`. Compare it with the fingerprint the phone shows. Only an `a` and Enter approves; an empty line, any other answer, the end

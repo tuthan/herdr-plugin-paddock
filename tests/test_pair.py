@@ -1208,6 +1208,34 @@ class PairTerminal(PairCase):
                 self.assertNotIn(GOOD_BODY[:40], t.screen)
                 self.assertEqual(reference_bytes(GOOD_LINE) if word == "ok" else None, self.written())
 
+    def test_a_refusal_that_ends_the_run_stops_the_listener_holding_keys(self):
+        # junk from the paste or the camera ends the run; the popup stays open on Enter, and a phone key that arrives then has no prompt
+        # to come to: it must be told `expired` (final), not `pending` for a window that nobody is watching
+        for intake in ("paste", "camera"):
+            with self.subTest(intake=intake):
+                if intake == "paste":
+                    t = PtyRun(self, "--no-camera", "--no-qr", "--listen-ip", "127.0.0.1")
+                else:
+                    self.fb.zbarcam("https://example.org/" + MARK)
+                    t = PtyRun(self, "--no-qr", "--listen-ip", "127.0.0.1", "--camera-now", "--camera-device", self.camera)
+                self.assertTrue(t.wait_for("for the phone (plain TCP"), t.screen)
+                port = int(re.search(r"listening on 127\.0\.0\.1:(\d+) for the phone", t.screen).group(1))
+                sid = parse_link(self.link_in(t.screen))["sid"]
+                if intake == "paste":
+                    t.send("this is not a key line\n")
+                self.assertTrue(t.wait_for("Refused (%s)" % ("a pasted line" if intake == "paste" else "the camera")), t.screen)
+                self.assertTrue(t.wait_for("Press Enter to close."), t.screen)
+                self.assertIsNone(t.proc.poll(), "the popup is still open, so the listener is still up")
+                self.assertEqual("expired", wire_ask(self, port, "%s key %s %s" % (V, sid, GOOD_LINE)))
+                self.assertEqual("none", wire_ask(self, port, "%s status %s" % (V, sid)), "the key was not stored")
+                self.assertEqual("expired", wire_ask(self, port, "%s key %s %s" % (V, sid, GOOD_LINE)))
+                self.assertEqual("refused", wire_ask(self, port, "%s status %s" % (V, pp.new_sid())), "everything else is answered as before")
+                self.assertNotIn("A key arrived", t.screen)
+                t.send("\n")
+                self.assertEqual(2, t.finish(), t.screen)
+                self.assertIsNone(self.written())
+                self.assertNotIn(MARK, t.screen)
+
     def test_the_default_listener_comes_from_the_default_route_and_a_missing_address_is_said(self):
         self.fb.ip("127.0.0.1")
         t = PtyRun(self, "--no-camera")

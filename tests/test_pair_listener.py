@@ -317,6 +317,27 @@ class Rules(ListenerCase):
         self.assertEqual("rejected", rig.status())
         self.assertEqual("rejected", rig.status())
 
+    def test_ending_the_window_early_makes_every_later_key_expired_and_stores_nothing(self):
+        self.l.end_window()
+        self.assertEqual("expired", self.rig.key())
+        self.assertEqual("expired", self.rig.key(OTHER_KEY_LINE))
+        self.assertIsNone(self.l.held)
+        self.assertEqual("none", self.rig.status())
+        self.assertFalse(self.l.adopt(KEY), "a key from another intake is not held either")
+        self.assertEqual("refused", self.rig.status(sid=pp.new_sid()), "a wrong handle is still just refused")
+
+    def test_ending_the_window_early_leaves_a_decided_key_answerable_and_expires_an_undecided_one(self):
+        self.rig.key()
+        self.l.end_window()
+        self.assertEqual("expired", self.rig.status())
+        rig = Rig()
+        self.addCleanup(rig.close)
+        rig.key()
+        rig.listener.finish(KEY)
+        rig.listener.end_window()
+        self.assertEqual("ok", rig.status())
+        self.assertEqual("ok", rig.status())
+
     def test_a_key_that_came_by_another_intake_is_held_so_a_phone_cannot_replace_it(self):
         other = pp.parse_key_line(OTHER_KEY_LINE)
         self.assertTrue(self.l.adopt(other, "the camera"))
