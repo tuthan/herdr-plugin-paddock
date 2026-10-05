@@ -7,8 +7,6 @@ name the phone should use (Enter keeps the default); for scripts and tests every
 """
 import argparse
 import os
-import shutil
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
@@ -34,14 +32,7 @@ def main(argv=None):
                              "A pairing link without a fingerprint is not made." % args.ssh_dir, 3)
         host = args.host or pp.default_host()
         if interactive and not args.host:
-            for _ in range(3):
-                typed = pp.read_line("Host name or address the phone should use [%s]: " % host, stdin=sys.stdin).decode("utf-8", "replace").strip()
-                if not typed:
-                    break
-                if pp.HOST_RE.match(typed):
-                    host = typed
-                    break
-                out.write("That is not a host name or address.\n")
+            host = pp.prompt_host(host, sys.stdin, out)
         port = args.port if args.port is not None else pp.sshd_port()
         user = args.user or pp.current_user()
         session = args.session if args.session is not None else pp.herdr_session(os.environ)
@@ -66,14 +57,9 @@ def main(argv=None):
     out.write("\nOpen the link on the phone (share it to Paddock, or paste it into Add a machine). Paddock fills in the machine and, at the\n"
               "first connection, shows the fingerprint the server presents next to these. Tap Trust only if they match; a fingerprint that\n"
               "is not in the link is refused.\n")
-    qr = None if args.no_qr else shutil.which("qrencode")
-    if qr:
-        try:
-            r = subprocess.run([qr, "-t", "ANSIUTF8", "-m", "1", link], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
-            if r.returncode == 0:
-                out.write("\n" + r.stdout.decode("utf-8", "replace"))
-        except (OSError, subprocess.SubprocessError):
-            pass
+    qr = None if args.no_qr else pp.draw_qr(link)
+    if qr is not None:
+        out.write("\n" + qr)
     if interactive:
         pp.pause()
     return 0
