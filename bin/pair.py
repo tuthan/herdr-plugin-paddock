@@ -316,6 +316,9 @@ class Popup(object):
         self.say("\nWaiting up to %d seconds for the phone's public key from whichever of these answers first:\n" % self.timeout)
         if self.listener:
             self.say("  listening on %s:%d for the phone (plain TCP, this network only, one key; the phone sends it from the app)\n" % self.listener.address)
+            if host != self.listener.address[0]:
+                self.say("    the phone connects to the link's host (%s) at that port, so that name must reach %s; if it does not, run again with --host %s\n"
+                         % (host, self.listener.address[0], self.listener.address[0]))
         else:
             self.say("  %s\n" % self.listener_note)
         if self.camera_ready:

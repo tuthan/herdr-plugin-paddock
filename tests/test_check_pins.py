@@ -102,7 +102,7 @@ class CheckPins(unittest.TestCase):
     def test_a_manifest_version_that_differs_from_the_mirror_fails(self):
         path = os.path.join(self.plugin, "herdr-plugin.toml")
         with open(path) as f:
-            t = f.read().replace('version = "0.1.0"', 'version = "0.2.0"', 1)
+            t = f.read().replace('version = "%s"' % self.load(self.plugin)["plugin_version"], 'version = "9.9.9"', 1)
         with open(path, "w") as f:
             f.write(t)
         code, out = self.run_it()
@@ -110,6 +110,7 @@ class CheckPins(unittest.TestCase):
         self.assertIn("FAIL  manifest version equals the mirror's plugin_version", out)
 
     def test_sync_copies_the_scripts_and_rewrites_the_mirror(self):
+        before = self.load(self.plugin)["plugin_version"]
         with open(os.path.join(self.app, "host", "paddock-relay.py"), "ab") as f:
             f.write(b"# a newer relay\n")
         new = check_pins.sha(os.path.join(self.app, "host", "paddock-relay.py"))
@@ -119,7 +120,7 @@ class CheckPins(unittest.TestCase):
         self.assertEqual(0, code, out)
         self.assertEqual(new, self.load(self.plugin)["files"]["host/paddock-relay.py"])
         self.assertEqual(2, self.load(self.plugin)["version"])
-        self.assertEqual(self.load(self.plugin)["plugin_version"], "0.1.0", "sync keeps the plugin's own fields")
+        self.assertEqual(self.load(self.plugin)["plugin_version"], before, "sync keeps the plugin's own fields")
 
     def test_a_missing_app_repository_is_an_error_not_a_pass(self):
         shutil.rmtree(os.path.join(self.app, "host"))

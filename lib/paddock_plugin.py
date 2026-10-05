@@ -28,8 +28,8 @@ import time
 KEY_TYPE = "ecdsa-sha2-nistp256"
 CURVE = "nistp256"
 MAX_INPUT_BYTES = 1024
-COMMENT_RE = re.compile(r"^[A-Za-z0-9@._-]{1,64}$")
-BASE64_RE = re.compile(r"^[A-Za-z0-9+/]+={0,2}$")
+COMMENT_RE = re.compile(r"^[A-Za-z0-9@._-]{1,64}\Z")
+BASE64_RE = re.compile(r"^[A-Za-z0-9+/]+={0,2}\Z")
 # The OpenSSH wire blob of a P-256 public key: string(type) string(curve) string(0x04 || X || Y).
 _BLOB = (
     (19).to_bytes(4, "big") + KEY_TYPE.encode() + (8).to_bytes(4, "big") + CURVE.encode() + (65).to_bytes(4, "big") + b"\x04"
@@ -206,10 +206,10 @@ def authorize(home, key):
 
 # ---- pairing link ------------------------------------------------------------------------------------------------------------
 
-HOST_RE = re.compile(r"^[A-Za-z0-9._:\[\]-]{1,253}$")
-USER_RE = re.compile(r"^[A-Za-z0-9._-]{1,32}$")
-SESSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
-SHA256_RE = re.compile(r"^SHA256:[A-Za-z0-9+/]{43}$")
+HOST_RE = re.compile(r"^[A-Za-z0-9._:\[\]-]{1,253}\Z")
+USER_RE = re.compile(r"^[A-Za-z0-9._-]{1,32}\Z")
+SESSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")
+SHA256_RE = re.compile(r"^SHA256:[A-Za-z0-9+/]{43}\Z")
 
 # What the app can pin: display name, key type, and the order the fingerprints are listed in.
 HOST_KEY_ORDER = (

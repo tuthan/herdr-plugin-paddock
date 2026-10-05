@@ -51,6 +51,8 @@ class BuildLink(unittest.TestCase):
             ("no fingerprints", dict(fingerprints=[])), ("five fingerprints", dict(fingerprints=[FP] * 5)),
             ("a lower-case sha256 prefix", dict(fingerprints=["sha256:" + "A" * 43])), ("a short fingerprint", dict(fingerprints=["SHA256:abc"])),
             ("a fingerprint with a comma", dict(fingerprints=["SHA256:" + "A" * 42 + ","])), ("a padded fingerprint", dict(fingerprints=["SHA256:" + "A" * 43 + "="])),
+            ("host with a trailing newline", dict(host="box\n")), ("user with a trailing newline", dict(user="alice\n")),
+            ("session with a trailing newline", dict(session="work\n")), ("fingerprint with a trailing newline", dict(fingerprints=["SHA256:" + "A" * 43 + "\n"])),
         ]
         for name, change in bad:
             with self.subTest(name):
@@ -58,6 +60,15 @@ class BuildLink(unittest.TestCase):
                 args.update(change)
                 with self.assertRaises(pp.Refusal):
                     pp.build_link(**args)
+
+    def test_no_pattern_lets_a_trailing_newline_through(self):
+        # `$` matches before a final newline; every pattern here ends in \\Z, so the newline is refused where it would reach a link or a file
+        for name, rx, good in [("HOST_RE", pp.HOST_RE, "box"), ("USER_RE", pp.USER_RE, "alice"), ("SESSION_RE", pp.SESSION_RE, "work"),
+                               ("SHA256_RE", pp.SHA256_RE, FP), ("COMMENT_RE", pp.COMMENT_RE, "paddock@phone"), ("BASE64_RE", pp.BASE64_RE, GOOD_BODY),
+                               ("SID_RE", pp.SID_RE, "A" * 22)]:
+            with self.subTest(name):
+                self.assertTrue(rx.match(good))
+                self.assertIsNone(rx.match(good + "\n"))
 
     def test_four_fingerprints_are_the_most(self):
         self.assertEqual(4, len(parse_link(pp.build_link("b", 22, "u", [FP] * 4))["fp"].split(",")))

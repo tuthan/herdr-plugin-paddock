@@ -608,6 +608,14 @@ class PairStdin(PairCase):
             links.append(link)
         self.assertNotEqual(parse_link(links[0])["sid"], parse_link(links[1])["sid"])
 
+    def test_the_popup_says_when_the_links_host_is_not_the_listeners_address(self):
+        r, out, err = self.run_pair(GOOD_LINE + "\n", "--listen-ip", "127.0.0.1", "--no-camera", "--no-qr")
+        self.assertIn("the phone connects to the link's host (box) at that port, so that name must reach 127.0.0.1", out)
+        self.assertIn("run again with --host 127.0.0.1", out)
+        r, out, err = self.run_pair(GOOD_LINE + "\n", "--listen-ip", "127.0.0.1", "--no-camera", "--no-qr", "--host", "127.0.0.1")
+        self.assertIn("listening on 127.0.0.1:", out)
+        self.assertNotIn("must reach", out)
+
     def test_a_listener_address_that_is_public_or_wild_is_refused_and_the_link_is_the_plain_one(self):
         for ip in ("8.8.8.8", "0.0.0.0", "224.0.0.1", "not-an-ip"):
             with self.subTest(ip):
