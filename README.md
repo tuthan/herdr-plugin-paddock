@@ -4,8 +4,7 @@ Paddock is an independent Android app that watches and answers the agents in you
 **It is not affiliated with, endorsed by or sponsored by herdr or its authors.** This plugin is the small host-side half of
 setting a phone up: it makes enrolling a phone one step instead of several, and it ships the two host scripts the app uses.
 
-Status: 0.2.0, not yet published. The licence is not chosen yet (see [LICENSE-PENDING.md](LICENSE-PENDING.md)); nothing here may
-be reused until it is.
+Status: 0.2.0, on GitHub but not yet tagged or listed in the herdr marketplace. Licence: MIT ([LICENSE](LICENSE)).
 
 ## Install
 

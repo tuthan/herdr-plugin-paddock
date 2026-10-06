@@ -66,12 +66,14 @@ class Manifest(unittest.TestCase):
                 for rx in banned:
                     self.assertIsNone(rx.search(body), "%s matches %s" % (os.path.join(dirpath, n), rx.pattern))
 
-    def test_the_readme_says_it_is_not_affiliated_and_the_licence_is_pending(self):
+    def test_the_readme_says_it_is_not_affiliated_and_names_the_licence(self):
         with open(os.path.join(ROOT, "README.md")) as f:
             readme = f.read()
         self.assertIn("not affiliated with, endorsed by or sponsored by herdr", readme)
-        self.assertTrue(os.path.isfile(os.path.join(ROOT, "LICENSE-PENDING.md")))
-        self.assertFalse(os.path.exists(os.path.join(ROOT, "LICENSE")), "no licence is chosen until decision M1")
+        self.assertIn("Licence: MIT ([LICENSE](LICENSE))", readme)
+        with open(os.path.join(ROOT, "LICENSE")) as f:
+            self.assertTrue(f.read().startswith("MIT License\n"))
+        self.assertFalse(os.path.exists(os.path.join(ROOT, "LICENSE-PENDING.md")), "the licence is chosen: the placeholder is gone")
 
 
 if __name__ == "__main__":
