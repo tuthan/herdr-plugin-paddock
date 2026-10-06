@@ -199,6 +199,9 @@ class Popup(object):
         a = self.args
         if a.no_camera:
             return None, "camera: off (--no-camera)"
+        blocker = pp.camera_blocker()
+        if blocker:
+            return None, blocker
         if not shutil.which("zbarcam"):
             return None, "camera: off (zbarcam is not installed; it comes with the zbar package)"
         device = pp.camera_device(a.camera_device)
@@ -277,10 +280,11 @@ class Popup(object):
             self.say("Copied the pairing link to the clipboard (%s).\n" % tool)
         elif self.tty:
             self.say(pp.osc52_copy(self.link_text))
-            self.say("No clipboard tool answered (wl-copy, xclip, xsel), so the link was offered to the terminal to copy (OSC 52). If it did not arrive, run "
-                     "python3 bin/show_pairing.py --no-qr from the plugin directory in a normal pane: herdr's mouse selection works there, not in a popup.\n")
+            self.say("No clipboard tool answered (%s), so the link was offered to the terminal to copy (OSC 52). If it did not arrive, run "
+                     "python3 bin/show_pairing.py --no-qr from the plugin directory in a normal pane: herdr's mouse selection works there, not in a popup.\n"
+                     % pp.clipboard_tool_names())
         else:
-            self.say("The link was not copied: no clipboard tool answered (wl-copy, xclip, xsel).\n")
+            self.say("The link was not copied: no clipboard tool answered (%s).\n" % pp.clipboard_tool_names())
 
     def enter_pressed(self):
         if self.tty and self.camera_ready and not self.camera_started:

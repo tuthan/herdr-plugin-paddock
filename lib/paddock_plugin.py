@@ -23,6 +23,7 @@ import shutil
 import socket
 import stat
 import subprocess
+import sys
 import time
 
 KEY_TYPE = "ecdsa-sha2-nistp256"
@@ -299,10 +300,15 @@ def herdr_session(environ):
     return m.group(1) if m else None
 
 
-def default_host(run=subprocess.run):
+def is_macos(platform=None):
+    """True on macOS. [platform] is for the tests; it defaults to this interpreter's."""
+    return (sys.platform if platform is None else platform) == "darwin"
+
+
+def default_host(run=subprocess.run, platform=None):
     """What the phone is told to connect to when nobody says: this machine's LAN address (the default route's), because a phone almost never resolves
     the machine's host name (no mDNS, no shared DNS), and the host name only when there is no LAN address to give."""
-    return lan_address(run) or socket.gethostname()
+    return lan_address(run, platform) or socket.gethostname()
 
 
 def current_user():
@@ -421,13 +427,26 @@ CLIPBOARD_TOOLS = (("wl-copy", ["wl-copy"], "WAYLAND_DISPLAY"), ("xclip", ["xcli
                    ("xsel", ["xsel", "--clipboard", "--input"], "DISPLAY"))
 
 
-def copy_to_clipboard(text, env=None, run=subprocess.run):
-    """Puts [text] on the desktop clipboard with wl-copy (Wayland), xclip or xsel (X11), the first the session can use. Returns the tool's name, or None
-    when none is installed or none worked. Nothing but [text] is given to it, and what it prints is dropped."""
+# macOS has one clipboard and no display variable. xclip or xsel there would write XQuartz's clipboard, not the one Cmd+V reads, so they are not tried.
+MACOS_CLIPBOARD_TOOLS = (("pbcopy", ["pbcopy"], None),)
+
+
+def clipboard_tools(platform=None):
+    return MACOS_CLIPBOARD_TOOLS if is_macos(platform) else CLIPBOARD_TOOLS
+
+
+def clipboard_tool_names(platform=None):
+    """The clipboard tools the popup tries on this platform, for the messages that name them."""
+    return ", ".join(name for name, _, _ in clipboard_tools(platform))
+
+
+def copy_to_clipboard(text, env=None, run=subprocess.run, platform=None):
+    """Puts [text] on the desktop clipboard with pbcopy (macOS), wl-copy (Wayland), xclip or xsel (X11), the first the session can use. Returns the tool's
+    name, or None when none is installed or none worked. Nothing but [text] is given to it, and what it prints is dropped."""
     env = os.environ if env is None else env
-    for name, cmd, display in CLIPBOARD_TOOLS:
+    for name, cmd, display in clipboard_tools(platform):
         path = shutil.which(name)
-        if not path or not env.get(display):
+        if not path or (display and not env.get(display)):
             continue
         try:
             r = run([path] + cmd[1:], input=text.encode("utf-8"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
@@ -464,6 +483,13 @@ def camera_device(explicit=None):
     if explicit:
         return explicit if os.path.exists(explicit) else None
     return "/dev/video0" if os.path.exists("/dev/video0") else None
+
+
+def camera_blocker(platform=None):
+    """Why the camera intake cannot exist on this platform, or None. It reads a V4L2 device through zbarcam, and macOS has neither."""
+    if is_macos(platform):
+        return "camera: off (the camera intake needs a V4L2 camera and zbarcam, which macOS does not have; paste the key line or use the listener)"
+    return None
 
 
 ZBARCAM_ARGS = ("--raw", "--oneshot", "--nodisplay", "--prescale=640x480")
@@ -615,12 +641,51 @@ def _ip_json(run, args):
     return data if isinstance(data, list) else None
 
 
-def lan_address(run=subprocess.run):
-    """The IPv4 address of the default route's device, from `ip -json -4 route show default` and `ip -json -4 addr show dev <dev>`.
+def _run_text(run, cmd):
+    """The stdout of [cmd] as text, or None when it cannot run, times out or fails."""
+    try:
+        r = run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout.decode("utf-8", "replace") if r.returncode == 0 else None
+
+
+def _macos_lan_address(run):
+    """macOS has no `ip`: the default route's interface from `route -n get default`, its address from `ipconfig getifaddr <interface>`."""
+    m = re.search(r"^\s*interface:\s*(\S+)\s*$", _run_text(run, ["route", "-n", "get", "default"]) or "", re.M)
+    if not m or not _IFACE_RE.match(m.group(1)):
+        return None
+    try:
+        ip = ipaddress.IPv4Address((_run_text(run, ["ipconfig", "getifaddr", m.group(1)]) or "").strip())
+    except ValueError:
+        return None
+    return None if ip.is_unspecified else str(ip)
+
+
+def _macos_lan_network(ip_text, run):
+    """The network [ip_text] is on, from `ifconfig` (`inet 192.168.1.5 netmask 0xffffff00 ...`: the mask is hexadecimal and must be contiguous)."""
+    for m in re.finditer(r"^\s*inet (\d{1,3}(?:\.\d{1,3}){3}) netmask 0x([0-9a-fA-F]{8})\b", _run_text(run, ["ifconfig"]) or "", re.M):
+        if m.group(1) != ip_text:
+            continue
+        mask = int(m.group(2), 16)
+        inverse = ~mask & 0xFFFFFFFF
+        if inverse & (inverse + 1):
+            continue  # not a run of ones followed by zeros
+        try:
+            return str(ipaddress.ip_network("%s/%d" % (ip_text, bin(mask).count("1")), strict=False))
+        except ValueError:
+            continue
+    return None
+
+
+def lan_address(run=subprocess.run, platform=None):
+    """The IPv4 address of the default route's device, from `ip -json -4 route show default` and `ip -json -4 addr show dev <dev>` (macOS: `route` and `ipconfig`).
 
     The route with the lowest metric wins; on a device with several addresses the route's preferred source is used when it
     names one, else the first global one. None when `ip` is missing, there is no default route or the device has no address.
     """
+    if is_macos(platform):
+        return _macos_lan_address(run)
     routes = _ip_json(run, ["route", "show", "default"])
     routes = [r for r in routes or [] if isinstance(r, dict) and isinstance(r.get("dev"), str) and _IFACE_RE.match(r["dev"])]
     if not routes:
@@ -645,8 +710,10 @@ def lan_address(run=subprocess.run):
     return found[0][0] if found else None
 
 
-def lan_network(ip_text, run=subprocess.run):
-    """The network [ip_text] is on (`192.168.42.0/24`), from `ip -json -4 addr`, or None when `ip` does not say."""
+def lan_network(ip_text, run=subprocess.run, platform=None):
+    """The network [ip_text] is on (`192.168.42.0/24`), from `ip -json -4 addr` (macOS: `ifconfig`), or None when that does not say."""
+    if is_macos(platform):
+        return _macos_lan_network(ip_text, run)
     for iface in _ip_json(run, ["addr", "show"]) or []:
         for info in (iface.get("addr_info") or []) if isinstance(iface, dict) else []:
             try:
@@ -657,11 +724,30 @@ def lan_network(ip_text, run=subprocess.run):
     return None
 
 
-def firewall_note(port, network, run=subprocess.run):
+MACOS_FIREWALL = "/usr/libexec/ApplicationFirewall/socketfilterfw"
+
+
+def _macos_firewall_note(run):
+    """The macOS application firewall, read with `socketfilterfw --getglobalstate` (`... (State = 1)`: 0 off, 1 on, 2 block all incoming). Read only."""
+    m = re.search(r"State\s*=\s*(\d)", _run_text(run, [MACOS_FIREWALL, "--getglobalstate"]) or "")
+    state = int(m.group(1)) if m else 0
+    if state == 2:
+        return ("The macOS firewall is set to block all incoming connections, so the phone says it cannot reach this machine.\n"
+                "  Turn 'Block all incoming connections' off for this pairing (System Settings > Network > Firewall > Options), and on again afterwards.\n")
+    if state == 1:
+        return ("The macOS firewall is on here. The first time this popup listens, macOS may ask whether Python may accept incoming network connections:\n"
+                "  click Allow, or the phone says it cannot reach this machine. This plugin changes nothing in the firewall.\n")
+    return None
+
+
+def firewall_note(port, network, run=subprocess.run, platform=None):
     """What to say when a host firewall is running that drops a phone's connection to the listener's port, or None. A firewall that denies incoming
     connections (ufw's and firewalld's default) lets the phone's SYN packets die without an answer, so the phone only ever says it cannot reach the
-    machine. Only ufw and firewalld are looked for, by whether their service is active (no privilege needed); nothing is run that changes them. The
-    commands are for the owner to run, for this pairing only and removed afterwards."""
+    machine. Only ufw and firewalld are looked for, by whether their service is active (no privilege needed), and on macOS the application firewall's
+    state; nothing is run that changes them. The commands are for the owner to run, for this pairing only and removed afterwards."""
+    if is_macos(platform):
+        return _macos_firewall_note(run)
+
     def active(unit):
         try:
             return run(["systemctl", "is-active", "--quiet", unit], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5).returncode == 0

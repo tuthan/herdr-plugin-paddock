@@ -4,42 +4,57 @@ Paddock is an independent Android app that watches and answers the agents in you
 **It is not affiliated with, endorsed by or sponsored by herdr or its authors.** This plugin is the small host-side half of
 setting a phone up: it makes enrolling a phone one step instead of several, and it ships the two host scripts the app uses.
 
-Status: 0.2.0, on GitHub but not yet tagged or listed in the herdr marketplace. Licence: MIT ([LICENSE](LICENSE)).
+Status: 0.2.0, on GitHub but not yet tagged or listed in the herdr marketplace. Licence: Apache-2.0 ([LICENSE](LICENSE)), the same as the Paddock app.
 
 ## Install
 
 ```sh
-herdr plugin install <owner>/herdr-plugin-paddock --ref v0.2.0
+herdr plugin install tuthan/herdr-plugin-paddock
 ```
 
-`<owner>` is a placeholder until the repository is published. Run it in an interactive terminal: herdr shows a preview of the
+That installs the default branch. Releases will be tagged `v<version>` and installed with `--ref v<version>`; none is tagged yet. Run it in an interactive terminal: herdr shows a preview of the
 plugin and its commands and asks before it installs (without a terminal it refuses unless you pass `--yes`). Read
 `herdr-plugin.toml` and `bin/` first; they are short. This plugin has no build step and no startup or event hooks, so nothing
-runs unless you choose an action. Needs herdr 0.9.1 or newer and Python 3.8 or newer. For development:
+runs unless you choose an action. Needs herdr 0.9.1 or newer and Python 3.8 or newer, on Linux or macOS (see Platforms). For development:
 `herdr plugin link /path/to/herdr-plugin-paddock`.
+
+## Platforms
+
+Linux and macOS (`platforms = ["linux", "macos"]` in the manifest). The Linux paths are the ones run for real: the live check against a disposable
+herdr session, and a phone. **The macOS paths have not been run on a Mac.** They are unit-tested (`tests/test_macos.py`) against stand-ins that print
+what `route`, `ipconfig`, `ifconfig`, `pbcopy` and `socketfilterfw` print, and the two host scripts use only POSIX calls. On macOS:
+
+- Turn on **Remote Login** (System Settings > General > Sharing), or the phone has nothing to connect to. Host keys are read from `/etc/ssh` and the
+  key goes to `~/.ssh/authorized_keys`, as on Linux.
+- The popup's default host is the default route's address, from `route -n get default` and `ipconfig getifaddr <interface>`. With a VPN as the default
+  route (no LAN address) it falls back to the host name, which a phone usually cannot resolve: pass `--host` with the address.
+- `c` + Enter copies the link with `pbcopy`. `qrencode` for the QR is `brew install qrencode`.
+- **There is no camera intake**: it reads a V4L2 camera with `zbarcam`, and macOS has neither. Paste the key line or use the listener; the popup says so.
+- If the macOS firewall is on, the popup says so under the listening line: click Allow when macOS asks whether Python may accept incoming network
+  connections. The plugin reads the firewall's state and changes nothing in it.
 
 ## What it does
 
 Three actions, each opening a small popup (herdr actions have no terminal, so the action opens the pane that has one):
 
-- **Paddock: authorize a phone** (`paddock.authorize-phone`). Paste the one line Paddock copies under "Public key to authorize".
+- **Paddock: authorize a phone** (`tuthan.paddock.authorize-phone`). Paste the one line Paddock copies under "Public key to authorize".
   The line is checked, then appended to `~/.ssh/authorized_keys`, once. What you paste is not shown on screen.
-- **Paddock: show the pairing link** (`paddock.show-pairing`). Prints a `paddock://pair?...` link holding this machine's LAN address (its host name only when it has none: a phone almost never resolves the host name),
+- **Paddock: show the pairing link** (`tuthan.paddock.show-pairing`). Prints a `paddock://pair?...` link holding this machine's LAN address (its host name only when it has none: a phone almost never resolves the host name),
   SSH port, user, herdr session and the SSH host-key fingerprints, and a QR code of it when `qrencode` is installed. Open the link
   on the phone: Paddock fills in Add a machine and, at the first connection, shows the fingerprint the server presents next to the
   ones in the link. You still tap Trust, and a fingerprint that is not in the link is refused.
-- **Paddock: pair a phone** (`paddock.pair`). The one-popup version of the two above: it shows the pairing link and its QR, takes the
+- **Paddock: pair a phone** (`tuthan.paddock.pair`). The one-popup version of the two above: it shows the pairing link and its QR, takes the
   phone's public key from whichever of three intakes answers first, shows the key's fingerprint, and writes `authorized_keys` only
   after you approve. See "Pair a phone" below.
 
-Run one from a pane in the herdr session you want, with `herdr plugin action invoke authorize-phone --plugin paddock` (the popup
+Run one from a pane in the herdr session you want, with `herdr plugin action invoke authorize-phone --plugin tuthan.paddock` (the popup
 opens on the herdr screen, so someone has to be attached to type into it), or bind a key in `config.toml`:
 
 ```toml
 [[keys.command]]
 key = "prefix+p"
 type = "plugin_action"
-command = "paddock.authorize-phone"
+command = "tuthan.paddock.authorize-phone"
 description = "authorize a phone for Paddock"
 ```
 
@@ -57,13 +72,13 @@ herdr 0.9.1 has no menu or command palette for plugin actions; a plugin action i
 [[keys.command]]
 key = "prefix+alt+p"
 type = "plugin_action"
-command = "paddock.pair"
+command = "tuthan.paddock.pair"
 description = "Paddock: pair a phone"
 ```
 
 ## Pair a phone
 
-`paddock.pair` opens one popup that does the whole enrollment. It prints the pairing link and, when `qrencode` is installed, its QR.
+`tuthan.paddock.pair` opens one popup that does the whole enrollment. It prints the pairing link and, when `qrencode` is installed, its QR.
 Then it waits (120 seconds by default, `--timeout`) for **one** complete key line from whichever intake answers first, and closes
 the others:
 

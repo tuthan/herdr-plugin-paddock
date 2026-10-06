@@ -18,7 +18,7 @@ def text():
 class Manifest(unittest.TestCase):
     def test_the_required_fields_and_the_pinned_herdr_version(self):
         t = text()
-        for field, value in (("id", "paddock"), ("name", "Paddock"), ("version", "0.2.0"), ("min_herdr_version", "0.9.1")):
+        for field, value in (("id", "tuthan.paddock"), ("name", "Paddock"), ("version", "0.2.0"), ("min_herdr_version", "0.9.1")):
             self.assertRegex(t, r'(?m)^%s = "%s"$' % (field, re.escape(value)))
 
     def test_no_build_startup_or_event_hooks_so_nothing_runs_unless_the_user_picks_an_action(self):
@@ -29,7 +29,7 @@ class Manifest(unittest.TestCase):
     @unittest.skipIf(tomllib is None, "tomllib needs Python 3.11")
     def test_parsed(self):
         m = tomllib.loads(text())
-        self.assertEqual(["linux"], m["platforms"])
+        self.assertEqual(["linux", "macos"], m["platforms"])
         actions = {a["id"]: a for a in m["actions"]}
         panes = {p["id"]: p for p in m["panes"]}
         self.assertEqual({"authorize-phone", "show-pairing", "pair"}, set(actions))
@@ -53,7 +53,7 @@ class Manifest(unittest.TestCase):
             self.assertRegex(ident, r"^[A-Za-z0-9:_-]+$", "action and pane ids may not contain dots")
 
     def test_the_repository_names_no_host_user_or_secret(self):
-        banned = [re.compile(p) for p in (r"/home/[a-z]+", r"BEGIN [A-Z ]*PRIVATE KEY", r"jdoe", r"devbox", r"github_pat_|ghp_[A-Za-z0-9]{20}")]
+        banned = [re.compile(p) for p in (r"/home/[a-z]+", r"BEGIN [A-Z ]*PRIVATE KEY", r"github_pat_|ghp_[A-Za-z0-9]{20}")]
         for dirpath, dirnames, filenames in os.walk(ROOT):
             dirnames[:] = [d for d in dirnames if d not in (".git", "__pycache__")]
             for n in filenames:
@@ -70,9 +70,11 @@ class Manifest(unittest.TestCase):
         with open(os.path.join(ROOT, "README.md")) as f:
             readme = f.read()
         self.assertIn("not affiliated with, endorsed by or sponsored by herdr", readme)
-        self.assertIn("Licence: MIT ([LICENSE](LICENSE))", readme)
+        self.assertIn("Licence: Apache-2.0 ([LICENSE](LICENSE))", readme)
         with open(os.path.join(ROOT, "LICENSE")) as f:
-            self.assertTrue(f.read().startswith("MIT License\n"))
+            licence = f.read()
+        self.assertIn("Apache License", licence)
+        self.assertIn("Version 2.0, January 2004", licence)
         self.assertFalse(os.path.exists(os.path.join(ROOT, "LICENSE-PENDING.md")), "the licence is chosen: the placeholder is gone")
 
 

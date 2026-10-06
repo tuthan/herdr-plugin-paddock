@@ -19,7 +19,7 @@ def main(argv=None):
         sys.stderr.write("usage: open_pane.py {%s} [herdr plugin pane open options]\n" % "|".join(ENTRYPOINTS))
         return 2
     herdr = os.environ.get("HERDR_BIN_PATH") or "herdr"
-    plugin = os.environ.get("HERDR_PLUGIN_ID") or "paddock"
+    plugin = os.environ.get("HERDR_PLUGIN_ID") or "tuthan.paddock"
     cmd = [herdr, "plugin", "pane", "open", "--plugin", plugin, "--entrypoint", argv[0]] + argv[1:]
     try:
         r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)

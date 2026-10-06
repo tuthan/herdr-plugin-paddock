@@ -1,9 +1,9 @@
-id = "paddock"
+id = "tuthan.paddock"
 name = "Paddock"
 version = "0.2.0"
 min_herdr_version = "0.9.1"
 description = "Set up a phone for Paddock, an independent Android monitor for herdr: authorize its SSH key, show a pairing link, or pair a phone in one popup (LAN listener, webcam or paste, approved by fingerprint). Ships the two host scripts the app uses."
-platforms = ["linux"]
+platforms = ["linux", "macos"]
 
 # A herdr action has no terminal and no stdin, so each action opens the popup of the same name, which has both.
 [[actions]]

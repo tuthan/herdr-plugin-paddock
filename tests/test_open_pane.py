@@ -36,14 +36,14 @@ class OpenPane(unittest.TestCase):
     def test_it_opens_the_pane_of_the_same_name_through_the_herdr_binary_herdr_names(self):
         self.fake_herdr('{"id":"x","result":{"type":"ok"}}')
         for entry in ("authorize-phone", "show-pairing", "pair"):
-            r = self.run_it(entry, HERDR_PLUGIN_ID="paddock")
+            r = self.run_it(entry, HERDR_PLUGIN_ID="tuthan.paddock")
             self.assertEqual(0, r.returncode, r.stderr)
-            self.assertEqual(["plugin", "pane", "open", "--plugin", "paddock", "--entrypoint", entry], self.argv())
+            self.assertEqual(["plugin", "pane", "open", "--plugin", "tuthan.paddock", "--entrypoint", entry], self.argv())
 
     def test_extra_arguments_go_to_herdr_unchanged(self):
         self.fake_herdr('{"result":{"type":"ok"}}')
         self.run_it("authorize-phone", "--placement", "split", "--no-focus")
-        self.assertEqual(["plugin", "pane", "open", "--plugin", "paddock", "--entrypoint", "authorize-phone", "--placement", "split", "--no-focus"], self.argv())
+        self.assertEqual(["plugin", "pane", "open", "--plugin", "tuthan.paddock", "--entrypoint", "authorize-phone", "--placement", "split", "--no-focus"], self.argv())
 
     def test_a_busy_popup_is_reported_plainly(self):
         self.fake_herdr('{"error":{"code":"ui_busy","message":"a popup pane is already open"},"id":"cli:plugin"}')

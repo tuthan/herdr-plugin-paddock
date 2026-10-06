@@ -15,7 +15,7 @@ and an `ip` that names 127.0.0.1), so the real camera is never opened and the li
 at the end. Without --start-session the `pair` checks are skipped (a running session's PATH cannot be known), and the rest runs as
 before.
 
-What it does: links this repository as the plugin `paddock`; seeds `<home>/.ssh/authorized_keys` with one foreign line that has no
+What it does: links this repository as the plugin `tuthan.paddock`; seeds `<home>/.ssh/authorized_keys` with one foreign line that has no
 trailing newline; with a terminal client attached, invokes `authorize-phone` (the popup), types a key line, and checks the file and
 that the line was never drawn; invokes it again (already authorized); types a private-key header (refused, file unchanged); invokes
 `show-pairing` (the popup). Then opens each pane entrypoint as a split pane, where the text can be read exactly, and checks the
@@ -353,7 +353,7 @@ def main():
 
     rc, out = herdr("plugin", "link", ROOT)
     check("the plugin links with no warning", rc == 0 and out["result"]["type"] == "plugin_linked" and not out["result"]["plugin"].get("warnings"))
-    rc, out = herdr("plugin", "action", "list", "--plugin", "paddock")
+    rc, out = herdr("plugin", "action", "list", "--plugin", "tuthan.paddock")
     ids = sorted(a["action_id"] for a in out["result"]["actions"]) if rc == 0 else []
     check("herdr lists the three actions", ids == ["authorize-phone", "pair", "show-pairing"], str(ids))
     if not herdr("pane", "list")[1]["result"]["panes"]:
@@ -388,7 +388,7 @@ def main():
     client.clear()
     try:
         # ---- authorize-phone, as a popup ----------------------------------------------------------------------------------
-        rc, out = herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "paddock")
+        rc, out = herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "tuthan.paddock")
         check("invoking authorize-phone starts the action", rc == 0 and out["result"]["type"] == "plugin_action_invoked")
         asked = client.wait_for("Key line:")
         check("the popup asks for the key line", asked)
@@ -408,7 +408,7 @@ def main():
         time.sleep(1.0)
 
         client.clear()
-        herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "paddock")
+        herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "tuthan.paddock")
         if not client.wait_for("Key line:"):
             raise RuntimeError("the second popup did not appear")
         check("a second run asks again", True)
@@ -421,7 +421,7 @@ def main():
 
         marker = "ZZLIVEMARKERZZ"
         client.clear()
-        herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "paddock")
+        herdr("plugin", "action", "invoke", "authorize-phone", "--plugin", "tuthan.paddock")
         if not client.wait_for("Key line:"):
             raise RuntimeError("the third popup did not appear")
         # the header is assembled here so this file never holds a literal private-key marker
@@ -435,7 +435,7 @@ def main():
 
         # ---- show-pairing, as a popup -------------------------------------------------------------------------------------
         client.clear()
-        rc, out = herdr("plugin", "action", "invoke", "show-pairing", "--plugin", "paddock")
+        rc, out = herdr("plugin", "action", "invoke", "show-pairing", "--plugin", "tuthan.paddock")
         check("invoking show-pairing starts the action", rc == 0)
         if not client.wait_for("Host name or address the phone should use"):
             raise RuntimeError("the pairing popup did not appear")
@@ -454,7 +454,7 @@ def main():
     base = herdr("pane", "list")[1]["result"]["panes"][0]["pane_id"]
 
     def open_split(entry):
-        rc, out = herdr("plugin", "pane", "open", "--plugin", "paddock", "--entrypoint", entry, "--placement", "split", "--no-focus")
+        rc, out = herdr("plugin", "pane", "open", "--plugin", "tuthan.paddock", "--entrypoint", entry, "--placement", "split", "--no-focus")
         return out["result"]["plugin_pane"]["pane"]["pane_id"] if rc == 0 and "result" in out else None
 
     def read_text(pane):
