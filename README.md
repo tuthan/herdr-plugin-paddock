@@ -25,7 +25,7 @@ Three actions, each opening a small popup (herdr actions have no terminal, so th
 
 - **Paddock: authorize a phone** (`paddock.authorize-phone`). Paste the one line Paddock copies under "Public key to authorize".
   The line is checked, then appended to `~/.ssh/authorized_keys`, once. What you paste is not shown on screen.
-- **Paddock: show the pairing link** (`paddock.show-pairing`). Prints a `paddock://pair?...` link holding this machine's host name,
+- **Paddock: show the pairing link** (`paddock.show-pairing`). Prints a `paddock://pair?...` link holding this machine's LAN address (its host name only when it has none: a phone almost never resolves the host name),
   SSH port, user, herdr session and the SSH host-key fingerprints, and a QR code of it when `qrencode` is installed. Open the link
   on the phone: Paddock fills in Add a machine and, at the first connection, shows the fingerprint the server presents next to the
   ones in the link. You still tap Trust, and a fingerprint that is not in the link is refused.
@@ -48,6 +48,20 @@ The programs also run on their own, which is how the tests drive them:
 `python3 bin/authorize_phone.py --stdin < keyline`, `python3 bin/show_pairing.py --no-prompt --host box.example.net`,
 `printf '%s\na\n' "$keyline" | python3 bin/pair.py --stdin --no-listen --no-camera --home /tmp/h` (the key line, then the answer).
 
+
+### Open it with one key
+
+herdr 0.9.1 has no menu or command palette for plugin actions; a plugin action is run by a key binding or `herdr plugin action invoke`. Bind one key in
+`~/.config/herdr/config.toml` (then reload with your reload key, `prefix+q` by default) and `prefix+?` lists it:
+
+```toml
+[[keys.command]]
+key = "prefix+alt+p"
+type = "plugin_action"
+command = "paddock.pair"
+description = "Paddock: pair a phone"
+```
+
 ## Pair a phone
 
 `paddock.pair` opens one popup that does the whole enrollment. It prints the pairing link and, when `qrencode` is installed, its QR.
@@ -67,6 +81,15 @@ the others:
   `--camera-device PATH` says otherwise; `--no-camera` removes the intake. Without `zbarcam` (the `zbar` package) or a camera the
   popup says the intake is absent.
 - **Paste.** As in authorize-phone: paste the key line and press Enter. Echo is off, so the line is never drawn.
+- **A firewall on this machine.** The listener's port is random, and a firewall that denies incoming connections (ufw and firewalld by default) drops the
+  phone's connection without an answer: the phone only says it cannot reach the machine (ufw logs `UFW BLOCK ... DPT=<port>`). When ufw or firewalld is
+  active the popup says so under the listening line and prints the command that opens that port for this pairing (`sudo ufw allow proto tcp from <network>
+  to any port <port>`; firewalld: `sudo firewall-cmd --add-port=<port>/tcp`, gone at the next reload) and the one that closes it. The plugin runs neither.
+- **Copy the link.** Type `c` and press Enter (it is not a key, and it is only taken while the popup waits for one): the pairing link, with no key and no
+  secret in it, goes to the desktop clipboard through `wl-copy` (Wayland), `xclip` or `xsel`, whichever the session has; with none of them the popup asks
+  the terminal to copy it (OSC 52) and says that is a request. A herdr popup is not a pane, so herdr's mouse selection and copy-on-select do not work in it (they do in a normal pane: run `python3 bin/show_pairing.py --no-qr` from the plugin directory in a shell there; that link has no listener, so the phone pastes or scans it but cannot Send the key); the terminal's own Shift+drag selects raw screen text, other panes' included.
+  The QR is drawn with a 2-module light border (`qrencode -m 2`); a phone camera reads a code from a screen only from about 4 pixels a module, so hold the
+  phone close or make the terminal font larger.
 
 Whatever arrives is checked exactly as `authorize-phone` checks a pasted line (one `ecdsa-sha2-nistp256` line, no options, no private
 keys, at most 1024 bytes). A refusal is explained without repeating what was received, and nothing is written. A second, different

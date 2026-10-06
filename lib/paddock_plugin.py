@@ -299,8 +299,10 @@ def herdr_session(environ):
     return m.group(1) if m else None
 
 
-def default_host():
-    return socket.gethostname()
+def default_host(run=subprocess.run):
+    """What the phone is told to connect to when nobody says: this machine's LAN address (the default route's), because a phone almost never resolves
+    the machine's host name (no mDNS, no shared DNS), and the host name only when there is no LAN address to give."""
+    return lan_address(run) or socket.gethostname()
 
 
 def current_user():
@@ -402,15 +404,43 @@ def pause(stdin=None, stdout=None):
 # ---- the pair popup: QR text, camera, approval, LAN address -----------------------------------------------------------------------
 
 def draw_qr(link):
-    """[link] as a terminal QR (`qrencode -t ANSIUTF8 -m 1`), or None when qrencode is not installed or fails."""
+    """[link] as a terminal QR (`qrencode -t ANSIUTF8 -m 2`), or None when qrencode is not installed or fails. The light border is 2 modules: with 1
+    a dark terminal comes right up against the code and a phone camera needs about a pixel more a module to find it."""
     qr = shutil.which("qrencode")
     if not qr:
         return None
     try:
-        r = subprocess.run([qr, "-t", "ANSIUTF8", "-m", "1", link], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
+        r = subprocess.run([qr, "-t", "ANSIUTF8", "-m", "2", link], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return None
     return r.stdout.decode("utf-8", "replace") if r.returncode == 0 else None
+
+
+# The desktop clipboard tools in the order they are tried, each with the variable that says the session has that display server.
+CLIPBOARD_TOOLS = (("wl-copy", ["wl-copy"], "WAYLAND_DISPLAY"), ("xclip", ["xclip", "-selection", "clipboard"], "DISPLAY"),
+                   ("xsel", ["xsel", "--clipboard", "--input"], "DISPLAY"))
+
+
+def copy_to_clipboard(text, env=None, run=subprocess.run):
+    """Puts [text] on the desktop clipboard with wl-copy (Wayland), xclip or xsel (X11), the first the session can use. Returns the tool's name, or None
+    when none is installed or none worked. Nothing but [text] is given to it, and what it prints is dropped."""
+    env = os.environ if env is None else env
+    for name, cmd, display in CLIPBOARD_TOOLS:
+        path = shutil.which(name)
+        if not path or not env.get(display):
+            continue
+        try:
+            r = run([path] + cmd[1:], input=text.encode("utf-8"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if r.returncode == 0:
+            return name
+    return None
+
+
+def osc52_copy(text):
+    """The terminal escape that asks the terminal itself to put [text] on the clipboard (OSC 52). Not every terminal, and no multiplexer, passes it on."""
+    return "\033]52;c;%s\a" % base64.b64encode(text.encode("utf-8")).decode("ascii")
 
 
 def prompt_host(default, stdin, stdout):
@@ -613,6 +643,44 @@ def lan_address(run=subprocess.run):
         if scope == "global":
             return ip
     return found[0][0] if found else None
+
+
+def lan_network(ip_text, run=subprocess.run):
+    """The network [ip_text] is on (`192.168.42.0/24`), from `ip -json -4 addr`, or None when `ip` does not say."""
+    for iface in _ip_json(run, ["addr", "show"]) or []:
+        for info in (iface.get("addr_info") or []) if isinstance(iface, dict) else []:
+            try:
+                if info.get("family") == "inet" and info.get("local") == ip_text and isinstance(info.get("prefixlen"), int):
+                    return str(ipaddress.ip_network("%s/%d" % (ip_text, info["prefixlen"]), strict=False))
+            except (AttributeError, ValueError):
+                continue
+    return None
+
+
+def firewall_note(port, network, run=subprocess.run):
+    """What to say when a host firewall is running that drops a phone's connection to the listener's port, or None. A firewall that denies incoming
+    connections (ufw's and firewalld's default) lets the phone's SYN packets die without an answer, so the phone only ever says it cannot reach the
+    machine. Only ufw and firewalld are looked for, by whether their service is active (no privilege needed); nothing is run that changes them. The
+    commands are for the owner to run, for this pairing only and removed afterwards."""
+    def active(unit):
+        try:
+            return run(["systemctl", "is-active", "--quiet", unit], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            return False
+    source = " from %s" % network if network else ""
+    if active("ufw"):
+        return ("ufw is running here, and it drops a phone's connection to a port nobody opened, so the phone says it cannot reach this machine.\n"
+                "  Open this port for this pairing, in another terminal:\n"
+                "    sudo ufw allow proto tcp%s to any port %d\n"
+                "  and close it afterwards:\n"
+                "    sudo ufw delete allow proto tcp%s to any port %d\n" % (source, port, source, port))
+    if active("firewalld"):
+        return ("firewalld is running here, and it may drop a phone's connection to a port nobody opened.\n"
+                "  Open this port until the next reload, in another terminal:\n"
+                "    sudo firewall-cmd --add-port=%d/tcp\n"
+                "  and close it afterwards:\n"
+                "    sudo firewall-cmd --remove-port=%d/tcp\n" % (port, port))
+    return None
 
 
 def listen_address_problem(ip_text):

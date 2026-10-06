@@ -4,6 +4,7 @@ Nothing here touches the real camera, the real network address, ~/.ssh or herdr:
 on a temporary PATH that holds nothing else, the camera device is an ordinary temporary file, and every run writes to a temporary
 HOME. The listener is only ever bound to 127.0.0.1.
 """
+import base64
 import io
 import json
 import os
@@ -175,6 +176,164 @@ class ReadQr(unittest.TestCase):
                 self.assertIsNone(pp.read_qr("/dev/null", 5))
         with mock.patch.dict(os.environ, {"PATH": tempfile.gettempdir() + "/pdk-no-such-dir"}):
             self.assertIsNone(pp.read_qr("/dev/null", 1))
+
+
+class DrawQr(unittest.TestCase):
+    def test_the_code_is_drawn_with_a_light_border_of_two_modules(self):
+        with FakeBin() as fb:
+            rec = os.path.join(fb._tmp.name, "qr-args")
+            fb.script("qrencode", "import sys\nopen(%r, 'w').write(' '.join(sys.argv[1:]))\nprint('QR')\n" % rec, python=True)
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertEqual("QR\n", pp.draw_qr("paddock://pair?x"))
+            with open(rec) as f:
+                self.assertEqual("-t ANSIUTF8 -m 2 paddock://pair?x", f.read())
+
+
+class CopyToClipboard(unittest.TestCase):
+    def tool(self, fb, name, code=0):
+        """A fake clipboard tool that writes what it was given to a file named after it, and exits with [code]."""
+        out = os.path.join(fb._tmp.name, name + "-got")
+        fb.script(name, "import sys\nopen(%r, 'w').write(sys.stdin.read() + '|' + ' '.join(sys.argv[1:]))\nsys.exit(%d)\n" % (out, code), python=True)
+        return out
+
+    def got(self, path):
+        try:
+            with open(path) as f:
+                return f.read()
+        except OSError:
+            return None
+
+    def test_wl_copy_gets_exactly_the_text_when_the_session_is_wayland(self):
+        with FakeBin() as fb:
+            out = self.tool(fb, "wl-copy")
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertEqual("wl-copy", pp.copy_to_clipboard("paddock://pair?v=1", env={"WAYLAND_DISPLAY": "wayland-1"}))
+            self.assertEqual("paddock://pair?v=1|", self.got(out))
+
+    def test_xclip_and_xsel_are_used_on_an_x11_session_with_the_clipboard_selection(self):
+        with FakeBin() as fb:
+            xclip = self.tool(fb, "xclip")
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertEqual("xclip", pp.copy_to_clipboard("L", env={"DISPLAY": ":0"}))
+            self.assertEqual("L|-selection clipboard", self.got(xclip))
+        with FakeBin() as fb:
+            xsel = self.tool(fb, "xsel")
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertEqual("xsel", pp.copy_to_clipboard("L", env={"DISPLAY": ":0"}))
+            self.assertEqual("L|--clipboard --input", self.got(xsel))
+
+    def test_a_tool_for_a_display_server_the_session_does_not_have_is_not_run(self):
+        with FakeBin() as fb:
+            wl = self.tool(fb, "wl-copy")
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertIsNone(pp.copy_to_clipboard("L", env={"DISPLAY": ":0"}))
+                self.assertIsNone(pp.copy_to_clipboard("L", env={}))
+            self.assertIsNone(self.got(wl))
+
+    def test_a_tool_that_fails_is_skipped_for_the_next_one(self):
+        with FakeBin() as fb:
+            self.tool(fb, "wl-copy", code=1)
+            xclip = self.tool(fb, "xclip")
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertEqual("xclip", pp.copy_to_clipboard("L", env={"WAYLAND_DISPLAY": "w", "DISPLAY": ":0"}))
+            self.assertEqual("L|-selection clipboard", self.got(xclip))
+
+    def test_no_tool_gives_none(self):
+        with mock.patch.dict(os.environ, {"PATH": tempfile.gettempdir() + "/pdk-no-such-dir"}):
+            self.assertIsNone(pp.copy_to_clipboard("L", env={"WAYLAND_DISPLAY": "w", "DISPLAY": ":0"}))
+
+    def test_a_tool_that_hangs_is_given_up_on(self):
+        def hang(cmd, **kw):
+            raise subprocess.TimeoutExpired(cmd, 5)
+        with FakeBin() as fb:
+            self.tool(fb, "wl-copy")
+            with mock.patch.dict(os.environ, {"PATH": fb.dir}):
+                self.assertIsNone(pp.copy_to_clipboard("L", env={"WAYLAND_DISPLAY": "w"}, run=hang))
+
+    def test_the_terminal_escape_carries_the_text_as_base64(self):
+        self.assertEqual("\033]52;c;%s\a" % base64.b64encode(b"paddock://pair?v=1").decode(), pp.osc52_copy("paddock://pair?v=1"))
+
+
+def ip_runner(addr_info=None, routes=None):
+    """A stand-in for subprocess.run that answers `ip -json -4 route show default` and `ip -json -4 addr [show [dev X]]`."""
+    routes = routes if routes is not None else [{"dst": "default", "dev": "wlan0", "metric": 600, "prefsrc": "192.168.42.86"}]
+    addr_info = addr_info if addr_info is not None else [{"family": "inet", "local": "192.168.42.86", "prefixlen": 24, "scope": "global"}]
+
+    def run(cmd, **kw):
+        out = routes if "route" in cmd else [{"ifname": "wlan0", "addr_info": addr_info}]
+        return subprocess.CompletedProcess(cmd, 0, json.dumps(out).encode(), b"")
+    return run
+
+
+class DefaultHost(unittest.TestCase):
+    def test_it_is_the_lan_address_a_phone_can_use_not_the_host_name(self):
+        self.assertEqual("192.168.42.86", pp.default_host(ip_runner()))
+
+    def test_it_falls_back_to_the_host_name_only_without_a_lan_address(self):
+        def no_ip(cmd, **kw):
+            raise FileNotFoundError(2, "No such file")
+        self.assertEqual(socket.gethostname(), pp.default_host(no_ip))
+        self.assertEqual(socket.gethostname(), pp.default_host(ip_runner(routes=[])))
+
+
+class LanNetwork(unittest.TestCase):
+    def test_it_is_the_network_the_address_is_on(self):
+        self.assertEqual("192.168.42.0/24", pp.lan_network("192.168.42.86", ip_runner()))
+        self.assertEqual("10.0.0.0/16", pp.lan_network("10.0.3.4", ip_runner([{"family": "inet", "local": "10.0.3.4", "prefixlen": 16}])))
+
+    def test_it_is_none_when_ip_does_not_say(self):
+        self.assertIsNone(pp.lan_network("192.168.42.99", ip_runner()))
+        self.assertIsNone(pp.lan_network("192.168.42.86", ip_runner([{"family": "inet", "local": "192.168.42.86"}])))
+        self.assertIsNone(pp.lan_network("192.168.42.86", ip_runner([{"family": "inet", "local": "192.168.42.86", "prefixlen": "24"}])))
+
+        def no_ip(cmd, **kw):
+            raise FileNotFoundError(2, "No such file")
+        self.assertIsNone(pp.lan_network("192.168.42.86", no_ip))
+
+
+class FirewallNote(unittest.TestCase):
+    @staticmethod
+    def systemctl(active):
+        def run(cmd, **kw):
+            assert cmd[:3] == ["systemctl", "is-active", "--quiet"], cmd
+            return subprocess.CompletedProcess(cmd, 0 if cmd[3] in active else 3)
+        return run
+
+    def test_an_active_ufw_gets_the_exact_commands_for_this_port_and_network(self):
+        note = pp.firewall_note(45173, "192.168.42.0/24", self.systemctl({"ufw"}))
+        self.assertIn("sudo ufw allow proto tcp from 192.168.42.0/24 to any port 45173\n", note)
+        self.assertIn("sudo ufw delete allow proto tcp from 192.168.42.0/24 to any port 45173\n", note)
+
+    def test_without_a_known_network_the_rule_names_no_source(self):
+        note = pp.firewall_note(45173, None, self.systemctl({"ufw"}))
+        self.assertIn("sudo ufw allow proto tcp to any port 45173\n", note)
+        self.assertNotIn(" from ", note.split("sudo ufw allow")[1].split("\n")[0])
+
+    def test_an_active_firewalld_gets_a_rule_that_lasts_until_the_next_reload(self):
+        note = pp.firewall_note(45173, "192.168.42.0/24", self.systemctl({"firewalld"}))
+        self.assertIn("sudo firewall-cmd --add-port=45173/tcp\n", note)
+        self.assertIn("sudo firewall-cmd --remove-port=45173/tcp\n", note)
+        self.assertNotIn("--permanent", note)
+
+    def test_no_active_firewall_or_no_systemctl_says_nothing(self):
+        self.assertIsNone(pp.firewall_note(45173, None, self.systemctl(set())))
+
+        def none(cmd, **kw):
+            raise FileNotFoundError(2, "No such file")
+
+        def hangs(cmd, **kw):
+            raise subprocess.TimeoutExpired(cmd, 5)
+        self.assertIsNone(pp.firewall_note(45173, None, none))
+        self.assertIsNone(pp.firewall_note(45173, None, hangs))
+
+    def test_nothing_that_changes_a_firewall_is_ever_run(self):
+        seen = []
+
+        def run(cmd, **kw):
+            seen.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0)
+        pp.firewall_note(45173, "10.0.0.0/8", run)
+        self.assertEqual([["systemctl", "is-active", "--quiet", "ufw"]], seen)
 
 
 class ApprovePrompt(unittest.TestCase):
@@ -478,6 +637,49 @@ class PairStdin(PairCase):
         self.assertEqual(0o600, os.stat(self.ak).st_mode & 0o777)
         self.assertEqual(0o700, os.stat(os.path.dirname(self.ak)).st_mode & 0o777)
         self.assert_no_key_material(out, err)
+
+    def clipboard_got(self):
+        try:
+            with open(os.path.join(self.fb._tmp.name, "clip")) as f:
+                return f.read()
+        except OSError:
+            return None
+
+    def fake_wl_copy(self):
+        self.fb.script("wl-copy", "import sys\nopen(%r, 'w').write(sys.stdin.read())\n" % os.path.join(self.fb._tmp.name, "clip"), python=True)
+
+    def test_c_copies_exactly_the_pairing_link_and_the_run_goes_on_to_approve_the_key(self):
+        self.fake_wl_copy()
+        r, out, err = self.run_pair("c\n" + GOOD_LINE + "\na\n", "--no-listen", "--no-camera", WAYLAND_DISPLAY="wayland-test")
+        self.assertEqual(0, r.returncode, err)
+        self.assertEqual(self.link_in(out), self.clipboard_got(), "the clipboard holds the link and nothing else")
+        self.assertIn("Copied the pairing link to the clipboard (wl-copy)", out)
+        self.assertEqual(reference_bytes(GOOD_LINE), self.written(), "the key after the copy was approved as usual")
+        self.assert_no_key_material(out, err)
+
+    def test_copy_in_any_case_and_with_a_carriage_return_does_the_same(self):
+        self.fake_wl_copy()
+        for typed in ("copy\n", "C\r\n", " c \n"):
+            with self.subTest(typed=typed):
+                if os.path.exists(os.path.join(self.fb._tmp.name, "clip")):
+                    os.remove(os.path.join(self.fb._tmp.name, "clip"))
+                r, out, err = self.run_pair(typed + "\n", "--no-listen", "--no-camera", WAYLAND_DISPLAY="wayland-test")
+                self.assertEqual(self.link_in(out), self.clipboard_got())
+                self.assertEqual(1, r.returncode, "no key came: that ends as it always did")
+                self.assertNotIn("Refused", out + err, "a copy is not a refused paste")
+
+    def test_c_with_no_clipboard_tool_says_so_and_does_not_end_the_run(self):
+        r, out, err = self.run_pair("c\n" + GOOD_LINE + "\na\n", "--no-listen", "--no-camera")
+        self.assertEqual(0, r.returncode, err)
+        self.assertIn("not copied", out)
+        self.assertEqual(reference_bytes(GOOD_LINE), self.written())
+
+    def test_c_at_the_approval_prompt_is_a_reject_not_a_copy(self):
+        self.fake_wl_copy()
+        r, out, err = self.run_pair(GOOD_LINE + "\nc\n", "--no-listen", "--no-camera", WAYLAND_DISPLAY="wayland-test")
+        self.assertEqual(1, r.returncode, err)
+        self.assertIsNone(self.written())
+        self.assertIsNone(self.clipboard_got(), "only the wait for the key takes the command")
 
     def test_an_uppercase_A_and_crlf_approve_too(self):
         for typed in ("A\n", "a\r\n"):
@@ -879,6 +1081,21 @@ class PairListening(PairCase):
             self.assertNotIn(GOOD_BODY, t)
             self.assertNotIn("paddock@phone", t)
 
+    def test_an_active_ufw_is_named_with_the_commands_that_open_and_close_the_listeners_port(self):
+        self.fb.script("systemctl", "import sys\nsys.exit(0 if sys.argv[-1] == 'ufw' else 3)\n", python=True)
+        p = PairProc(self)
+        p.wait_for("sudo ufw delete allow proto tcp to any port %d" % p.port)
+        self.assertIn("ufw is running here", p.out)
+        self.assertIn("sudo ufw allow proto tcp to any port %d\n" % p.port, p.out)
+        self.assertNotIn("firewalld", p.out)
+
+    def test_with_no_active_firewall_the_popup_says_nothing_about_one(self):
+        self.fb.script("systemctl", "import sys\nsys.exit(3)\n", python=True)
+        p = PairProc(self)
+        p.wait_for("standard input (--stdin)")
+        self.assertNotIn("is running here", p.out)  # not "ufw": the link's random fingerprint and handle could spell it
+        self.assertNotIn("sudo ", p.out)
+
     def test_reject_is_told_to_the_phone_and_nothing_is_written(self):
         p = PairProc(self)
         p.key()
@@ -1255,8 +1472,9 @@ class PairTerminal(PairCase):
         self.assertEqual(self.base_link, self.link_in(t.screen))
 
     def test_the_host_name_is_asked_like_show_pairing_asks_it(self):
+        self.fb.ip("10.9.8.7")
         t = PtyRun(self, "--no-listen", "--no-camera", "--no-qr", ask_host=True)
-        self.assertTrue(t.wait_for("Host name or address the phone should use [%s]" % pp.default_host()), t.screen)
+        self.assertTrue(t.wait_for("Host name or address the phone should use [10.9.8.7]"), t.screen)
         t.send("phone-box.local\n")
         self.assertTrue(t.wait_for("paste the key line here"), t.screen)
         self.assertEqual("paddock://pair?v=1&host=phone-box.local&port=22&user=alice&fp=" + self.fp, self.link_in(t.screen))
@@ -1265,7 +1483,11 @@ class PairTerminal(PairCase):
         self.assertTrue(t.wait_for("Host name or address the phone should use ["))
         t.send("\n")
         self.assertTrue(t.wait_for("paste the key line here"), t.screen)
-        self.assertIn("host=%s&" % pp.default_host(), self.link_in(t.screen), "Enter keeps the default")
+        self.assertIn("host=10.9.8.7&", self.link_in(t.screen), "Enter keeps the default, and the default is the LAN address")
+
+    def test_with_no_lan_address_the_default_is_the_host_name(self):
+        t = PtyRun(self, "--no-listen", "--no-camera", "--no-qr", ask_host=True)  # no `ip` on this PATH
+        self.assertTrue(t.wait_for("Host name or address the phone should use [%s]" % socket.gethostname()), t.screen)
 
 
 if __name__ == "__main__":

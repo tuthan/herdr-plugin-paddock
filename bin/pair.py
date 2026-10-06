@@ -132,6 +132,7 @@ class Popup(object):
         self.camera_ready = None    # the device the Enter key switches on, or None
         self.camera_started = False
         self.phase = "wait"
+        self.link_text = None       # the pairing link, for the copy command
         self.candidate = None       # (where it came from, KeyLine)
         self.refusal = None         # (where it came from, Refusal) for the first complete line that failed the key check
 
@@ -251,6 +252,8 @@ class Popup(object):
                 break
             if line in (b"\n", b"\r\n"):
                 self.enter_pressed()
+            elif line.strip().lower() in (b"c", b"copy"):
+                self.copy_link()  # never a key: a single letter is not a key line, and it must not end the run as a refused paste would
             else:
                 self.take(line, "a pasted line")
 
@@ -263,6 +266,21 @@ class Popup(object):
         self.candidate = (where, key)
         if self.listener:
             self.listener.adopt(key)  # a phone that now sends a different key is told `busy`
+
+    def copy_link(self):
+        """The `c` command: the pairing link (no key, no secret) to the desktop clipboard. A herdr popup is not a pane (herdr's docs), so herdr's own mouse selection
+        and copy-on-select do not reach it; the terminal's Shift+drag selects raw screen text, other panes' included."""
+        if self.link_text is None:
+            return
+        tool = pp.copy_to_clipboard(self.link_text)
+        if tool:
+            self.say("Copied the pairing link to the clipboard (%s).\n" % tool)
+        elif self.tty:
+            self.say(pp.osc52_copy(self.link_text))
+            self.say("No clipboard tool answered (wl-copy, xclip, xsel), so the link was offered to the terminal to copy (OSC 52). If it did not arrive, run "
+                     "python3 bin/show_pairing.py --no-qr from the plugin directory in a normal pane: herdr's mouse selection works there, not in a popup.\n")
+        else:
+            self.say("The link was not copied: no clipboard tool answered (wl-copy, xclip, xsel).\n")
 
     def enter_pressed(self):
         if self.tty and self.camera_ready and not self.camera_started:
@@ -302,9 +320,12 @@ class Popup(object):
             self.problem(("\n" if self.tty else "") + r.message + "\n")
             self.close_tty()
             return r.code
+        self.link_text = link
         self.say("Paddock: pair a phone\n\n"
                  "Open this link on the phone, or scan its QR code with Paddock. It holds no key and no secret: only public host-key\n"
                  "fingerprints%s.\n\n%s\n\n" % (", and the handle of this one pairing" if self.sid else "", link))
+        if self.tty:
+            self.say("Type c and press Enter to copy the link to the clipboard. (Mouse selection does not work in a herdr popup.)\n\n")
         self.say("  host %s (the phone must be able to reach this name or address; change it with --host)   port %d   user %s   session %s\n"
                  % (host, port, user, session or "(the default herdr session)"))
         if not a.no_qr:
@@ -316,6 +337,9 @@ class Popup(object):
         self.say("\nWaiting up to %d seconds for the phone's public key from whichever of these answers first:\n" % self.timeout)
         if self.listener:
             self.say("  listening on %s:%d for the phone (plain TCP, this network only, one key; the phone sends it from the app)\n" % self.listener.address)
+            note = pp.firewall_note(self.listener.port, pp.lan_network(self.listener.address[0]))
+            if note:
+                self.say("    %s" % note.replace("\n  ", "\n      "))
             if host != self.listener.address[0]:
                 self.say("    the phone connects to the link's host (%s) at that port, so that name must reach %s; if it does not, run again with --host %s\n"
                          % (host, self.listener.address[0], self.listener.address[0]))
