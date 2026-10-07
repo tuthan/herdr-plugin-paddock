@@ -150,6 +150,12 @@ hashes in `host/SOURCE.json`. The app verifies the sha256 before it uses either,
 compares them, the mirror and the app repository's own pins, and fails on any difference; `--sync` copies from the app repository.
 The plugin never runs them itself.
 
+## Website
+
+`site/` is the product page, published at <https://tuthan.github.io/herdr-plugin-paddock/> by `.github/workflows/pages.yml` on
+every push to `main` that changes it. It is static HTML, CSS and JavaScript with no build step; open `site/index.html` to view it
+locally. The plugin never reads it.
+
 ## Tests
 
 ```sh
@@ -163,4 +169,4 @@ No analytics, no outgoing network connections, no files read or written outside 
 key and `sshd_config` files (read) and the herdr plugin directories. The one thing that touches the network is the `pair` popup's
 listener, and only while that popup is open: LAN-only, optional (`--no-listen`), plaintext, and it carries only a public key and a
 session handle in, and one result word out. The webcam is read only after you press Enter in that popup. The repository holds no
-secret, key, host name or address.
+secret, key, host name or address; the addresses and fingerprints on the website are made-up examples.

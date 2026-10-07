@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Paddock for herdr</title>
+<meta name="description" content="Paddock puts the coding agents running in herdr on your phone. Get an alert when one is waiting, read exactly what it asks, and answer over SSH, with no cloud in between.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/paddock.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+<a class="brand" href="#top" aria-label="Paddock, back to top"><svg viewBox="0 0 108 108" aria-hidden="true"><defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="108" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#292e42"/><stop offset="1" stop-color="#16161e"/></linearGradient><linearGradient id="bp1" x1="0" y1="29" x2="0" y2="78" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#a4bdff"/><stop offset="1" stop-color="#5f82db"/></linearGradient></defs><rect width="108" height="108" fill="url(#bg1)"/><path d="M40.5 29V78M40.5 36H54.5a12.5 12.5 0 0 1 0 25H40.5" fill="none" stroke="url(#bp1)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="53.5" cy="48.5" r="5" fill="#f7768e"/></svg>Paddock</a>
+<nav aria-label="Sections"><a href="#how">How it works</a><a href="#features">Features</a><a href="#install">Pairing</a><a href="#security">Security</a><a href="#faq">FAQ</a></nav>
+<a class="pbtn pri navcta" href="#install">Get started</a>
+</div></header>
+
+<main id="top">
+<section class="hero wrap">
+<p class="eyebrow"><b>For herdr</b><span aria-hidden="true">·</span><span>Android</span></p>
+<h1 class="h-hero">Your agents are waiting<span class="rdot" aria-hidden="true"></span><span class="soft">Answer from your phone.</span></h1>
+<div class="hero-row">
+<p class="lede"><strong>Paddock</strong> puts every coding agent running in <a href="https://herdr.dev">herdr</a> on your phone. When one stops to ask for a permission or a decision, you get an alert, read exactly what it wants, and answer. Then the work keeps moving while you are away from your desk.</p>
+<div class="hero-side">
+<p class="lede small">It connects straight to your machine over SSH. No cloud, no account, no relay.</p>
+<div class="ctas"><a class="pbtn pri" href="#install">Pair your phone</a><a class="pbtn" href="#features">See what it does</a></div>
+</div>
+</div>
+
+<div class="player" id="reel">
+<div class="reel" id="reelBox" tabindex="0" role="region" aria-roledescription="video" aria-label="A 45-second tour of Paddock. Press Space to play or pause."><div class="stage" id="stage" aria-hidden="true"></div></div>
+<div class="ctrl">
+<button class="pbtn pri" id="play" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="playIc" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg><span id="playT">Pause</span></button>
+<button class="pbtn" id="snd" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="sndW" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" opacity=".3"/></svg><span id="sndT">Sound off</span></button>
+<div class="scrub"><div class="track" id="track"><i id="prog"></i></div><input id="seek" type="range" min="0" max="45" step="0.01" value="0" aria-label="Position in the tour, seconds"></div>
+<span class="tc" id="tc">0:00 / 0:45</span>
+<button class="pbtn" id="fs" type="button" aria-label="Full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<ol class="chapters" id="chapters" aria-label="Chapters"></ol>
+</div>
+
+<div class="facts">
+<div><b>20 s</b><span>Built for quick check-ins: alert, read, answer, back to your day</span></div>
+<div><b>1 popup</b><span>To pair: scan a code, compare eight characters, approve</span></div>
+<div><b>0 servers</b><span>Your phone talks SSH to your machine and nothing else</span></div>
+<div><b>Any agent</b><span>Claude Code, Codex, OpenCode, Gemini and the rest of your herd</span></div>
+</div>
+</section>
+
+<section class="blk wrap" id="why">
+<div class="two">
+<div>
+<p class="kick"><span class="dot red"></span>Why Paddock</p>
+<h2 class="h2">Agents don't get tired. <em>They get blocked.</em></h2>
+<p class="copy">You start a few agents and step away. Claude Code wants to push a branch, Codex wants to add a dependency, and both sit idle until you are back at the desk. Every minute they wait is work that isn't happening.</p>
+<p class="copy">Paddock tells you the moment one is waiting and lets you answer from wherever you are. It isn't a cramped terminal in your pocket: it shows <b>which agent needs you and what it is asking</b>, and more only when you want it.</p>
+</div>
+<div>
+<div class="herd" id="herdGrid" aria-hidden="true"></div>
+<p class="herdsum" id="herdSum"></p>
+</div>
+</div>
+<div class="rules">
+<div><h3><span class="dot red"></span>See who needs you</h3><p>Agents waiting on you are red and finished ones are green. Working agents stay quiet, so nothing competes for your attention.</p></div>
+<div><h3><span class="dot blue"></span>Read before you answer</h3><p>The full command or change is on screen, never squeezed onto a button. You decide with everything in front of you.</p></div>
+<div><h3><span class="dot amber"></span>Know how fresh it is</h3><p>Live data says <code>live · 3 s</code>; a widget says <code>as of 14:03</code>. Nothing out of date pretends to be current.</p></div>
+</div>
+</section>
+
+<section class="blk wrap" id="how">
+<p class="kick"><span class="dot blue"></span>How it works</p>
+<h2 class="h2">Twenty seconds, start to finish.</h2>
+<p class="copy">From the buzz in your pocket to the agent working again, without opening a laptop.</p>
+<div class="ruler" aria-hidden="true"><i class="base"></i><i class="fill"></i>
+<span class="mk first" style="left:0"><i></i><span>0 s</span></span>
+<span class="mk" style="left:10%"><i></i><span>2 s</span></span>
+<span class="mk" style="left:30%"><i></i><span>6 s</span></span>
+<span class="mk" style="left:70%"><i></i><span>14 s</span></span>
+<span class="mk last" style="left:100%"><i></i><span>20 s · back to your day</span></span>
+</div>
+<div class="visit">
+<div class="vstep"><div class="ph-fit" data-ph="lock" aria-hidden="true"></div><h3><span class="mono">0 s</span>Get the alert</h3><p>An agent stops to ask, and your lock screen shows a short alert. It never includes the command or your code.</p></div>
+<div class="vstep"><div class="ph-fit" data-ph="home" aria-hidden="true"></div><h3><span class="mono">2 s</span>See who needs you</h3><p>Open Paddock and the waiting agent is at the top, with its question and the exact command.</p></div>
+<div class="vstep"><div class="ph-fit" data-ph="sheet" aria-hidden="true"></div><h3><span class="mono">6 s</span>Read and decide</h3><p>Read the whole request, then tap Yes or No. The buttons wait until you have seen all of it.</p></div>
+<div class="vstep"><div class="ph-fit" data-ph="sent" aria-hidden="true"></div><h3><span class="mono">14 s</span>Back to work</h3><p>Paddock confirms your answer was delivered and shows the agent working again.</p></div>
+</div>
+<p class="note">Yes and No on the phone are for Claude Code's permission prompts, once set up on your machine (Pro). For any other agent or question, you answer in the terminal view, a tap away from the alert.</p>
+</section>
+
+<section class="blk wrap" id="features">
+<p class="kick"><span class="dot green"></span>Features</p>
+<h2 class="h2">Everything you need away from the desk.</h2>
+<div class="feats">
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg></span><h3>Alerts on your lock screen</h3><p>A small relay on your machine notifies you through the ntfy app or UnifiedPush. Alerts say only that something needs you.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><h3>Yes or No for Claude Code <span class="pro">Pro</span></h3><p>Answer Claude Code's permission prompts from your phone, after a one-time setup on your machine. Your answer goes to the exact request Claude Code is holding; its own dialog stays open on your desktop, and whichever answers first wins.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg></span><h3>Send a prompt</h3><p>Type a follow-up or tap a saved snippet. Paddock checks the agent is ready right before sending, and sends it once.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></svg></span><h3>The real terminal</h3><p>Watch any pane read-only, or take control with keys for Esc, arrows, Tab and sticky Ctrl, Alt and Shift. Release it with one tap.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span><h3>What happened while you were away</h3><p>The Activity log lists what your phone saw, with times: who finished, who asked, and when a machine dropped off.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg></span><h3>Sessions and new agents</h3><p>Browse sessions, workspaces and tabs. Start an agent in a new tab or a fresh Git worktree <span class="pro">Pro</span>.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10h4M7 14h7"/><circle cx="17" cy="10" r="1.2"/></svg></span><h3>Home-screen widgets <span class="pro">Pro</span></h3><p>See how many agents need you without opening the app. Every number shows when it was read.</p></div>
+<div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.5 6.5a8 8 0 1 0 11 0"/></svg></span><h3>Wake your machine</h3><p>Machine asleep? Send a Wake-on-LAN packet from your phone and pick up where you left off.</p></div>
+</div>
+</section>
+
+<section class="blk wrap" id="answers">
+<div class="two">
+<div>
+<p class="kick"><span class="dot red"></span>Claude Code permissions</p>
+<h2 class="h2">A Yes you can trust.</h2>
+<p class="copy">Many remote tools answer by typing <code>y</code> into a terminal and hoping the prompt hasn't changed. Paddock answers the permission request itself, so your Yes can only approve the command you read. This works for Claude Code's permission prompts, once you have set it up on your machine from the app.</p>
+<ul class="guards" id="guards">
+<li data-g="read"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><div><b>Read in full</b><span>Yes and No stay off until you have seen the whole request. Try it here: the <code>--delete</code> is below the fold.</span></div></li>
+<li data-g="guard"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><div><b>No pocket taps</b><span>The buttons wait 1.5 seconds after a request appears.</span></div></li>
+<li class="ok"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><div><b>One request, one answer</b><span>Your answer goes to that request only. If it has expired, nothing is sent. Paddock never sets "always allow".</span></div></li>
+<li class="ok"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="#9ece6a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><div><b>Your desk still works</b><span>Claude Code's own dialog stays open on your machine. Whoever answers first wins.</span></div></li>
+</ul>
+</div>
+<div class="demo">
+<div class="ph-fit" id="demoPh"></div>
+<p class="demo-say" id="demoSay" aria-live="polite"></p>
+<button class="pbtn" id="demoReset" type="button">Ask again</button>
+</div>
+</div>
+</section>
+
+<section class="blk wrap" id="install">
+<p class="kick"><span class="dot blue"></span>Pairing</p>
+<h2 class="h2">Pair your phone in about a minute.</h2>
+<p class="copy">No passwords to type and no keys to copy by hand. Install the plugin once, then pair from a popup in herdr.</p>
+<ol class="steps">
+<li><b>Install the plugin</b><span>On the machine that runs herdr:</span><span class="cmd"><code id="cmdInstall">herdr plugin install tuthan/herdr-plugin-paddock</code><button class="copybtn" type="button" data-copy="cmdInstall">Copy</button></span></li>
+<li><b>Open the popup</b><span>Run <code>Paddock: pair a phone</code> from a key binding, or with <code>herdr plugin action invoke pair --plugin tuthan.paddock</code>. It shows a QR code.</span></li>
+<li><b>Scan and send</b><span>In Paddock, tap <b>Scan the code on the desktop</b>, then <b>Send the key</b>. The address, user, session and your machine's fingerprint fill in for you.</span></li>
+<li><b>Compare and approve</b><span>Check the eight highlighted characters match on both screens, press <code>a</code> in the popup, then tap <b>Connect</b>.</span></li>
+</ol>
+<div class="pairvis" aria-hidden="true">
+<div class="popup">
+<div class="tb"><i></i><i></i><i></i><span>herdr · Paddock: pair a phone</span></div>
+<div class="pb">
+<span class="w">Pair a phone with dev@192.168.42.23 · session default</span>
+<div class="qrrow"><canvas id="pairQr" width="196" height="196"></canvas><div class="side"><span><b>Scan with Paddock</b>, or open the link on the phone.</span><span>listening on <b>192.168.42.23:41237</b><br>this network only, one key</span><span>camera ready, used after Enter</span></div></div>
+<span>Phone key fingerprint:</span>
+<span>  SHA256:<mark>Xk3fQ9aT</mark>7hL2mPvB8nRcYw4dJ6sE1uGzK0oNqF5tHiA</span>
+<span>  first 8 characters:  [<em>Xk3fQ9aT</em>]</span>
+<span class="dim">Approve only if the phone shows the same fingerprint.</span>
+<span>[R]eject (default) / [a]pprove, then Enter: <b>a</b></span>
+<span class="ok">✓ Added to ~/.ssh/authorized_keys. Press Connect on the phone.</span>
+</div>
+</div>
+<div class="ph-fit" data-ph="pair"></div>
+</div>
+<p class="note">Other ways in: paste the key line into the popup, show it to the desktop's webcam, or run the one-line authorize command the app gives you. You can also type the address yourself or let Paddock find the machine on your network.</p>
+<dl class="needs">
+<div><dt>On your machine</dt><dd>herdr 0.9.1 or newer, an SSH server your phone can reach, and Python 3 (3.11 or newer for alerts and for Yes and No in Claude Code). Linux or macOS.</dd></div>
+<div><dt>Optional</dt><dd><code>qrencode</code> to draw the QR in the popup, <code>zbar</code> for the webcam.</dd></div>
+<div><dt>Away from home</dt><dd>Use a VPN such as Tailscale or WireGuard so your phone can still reach your machine.</dd></div>
+</dl>
+</section>
+
+<section class="blk wrap" id="security">
+<p class="kick"><span class="dot green"></span>Security</p>
+<h2 class="h2">No server in between. <span class="soft">Just your phone and your machine.</span></h2>
+<p class="copy">Paddock has no backend, no account and no relay. Your phone connects to your machine over SSH, on your network or through your VPN, and talks to herdr there.</p>
+<div class="flowwrap"><svg class="flow" viewBox="0 0 1152 300" role="img" aria-label="Your phone connects over SSH directly to your machine running herdr. There is no Paddock server in between.">
+<defs><linearGradient id="fl" x1="200" y1="0" x2="832" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7aa2f7"/><stop offset="1" stop-color="#9ece6a"/></linearGradient></defs>
+<g transform="translate(436 18)"><rect width="280" height="66" rx="12" fill="none" stroke="#565f89" stroke-dasharray="5 6"/><text x="140" y="30" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" fill="#565f89">a Paddock cloud</text><line x1="62" y1="25" x2="218" y2="25" stroke="#f7768e" stroke-width="2"/><text x="140" y="52" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#8b95c0">there isn't one</text></g>
+<g transform="translate(40 66)"><rect width="150" height="214" rx="28" fill="#1a1b26" stroke="#414868" stroke-width="1.5"/><circle cx="75" cy="15" r="4.5" fill="#0f0f14"/><text x="18" y="56" font-family="IBM Plex Sans, sans-serif" font-size="17" font-weight="600" fill="#e2e6fb">Paddock</text><text x="18" y="80" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#f7768e">1 needs you</text><rect x="14" y="94" width="122" height="34" rx="8" fill="rgba(247,118,142,.12)" stroke="rgba(247,118,142,.4)"/><rect x="14" y="134" width="122" height="26" rx="8" fill="#292e42"/><text x="18" y="194" font-family="JetBrains Mono, monospace" font-size="11.5" fill="#8b95c0">key stays here</text></g>
+<g transform="translate(842 56)"><rect width="270" height="226" rx="14" fill="#0f0f14" stroke="#414868" stroke-width="1.5"/><rect width="270" height="34" rx="14" fill="#1a1b26"/><rect y="20" width="270" height="14" fill="#1a1b26"/><circle cx="18" cy="17" r="5" fill="#414868"/><circle cx="34" cy="17" r="5" fill="#414868"/><circle cx="50" cy="17" r="5" fill="#414868"/><text x="70" y="22" font-family="JetBrains Mono, monospace" font-size="12" fill="#8b95c0">dev@desktop · herdr</text><g font-family="JetBrains Mono, monospace" font-size="12.5"><circle cx="22" cy="66" r="5" fill="#f7768e"/><text x="36" y="70" fill="#e2e6fb">claude  docs</text><circle cx="22" cy="96" r="5" fill="#7aa2f7"/><text x="36" y="100" fill="#c0caf5">codex   api</text><circle cx="22" cy="126" r="5" fill="#7aa2f7"/><text x="36" y="130" fill="#c0caf5">gemini  docs</text><circle cx="22" cy="156" r="5" fill="#565f89"/><text x="36" y="160" fill="#8b95c0">pi      fixtures</text><text x="16" y="200" fill="#565f89">~/.ssh/authorized_keys +1</text></g></g>
+<path class="flowline" d="M200 172 H832" stroke="url(#fl)" stroke-width="2.5" stroke-dasharray="8 10" fill="none"/>
+<circle cx="200" cy="172" r="5" fill="#7aa2f7"/><circle cx="832" cy="172" r="5" fill="#9ece6a"/>
+<text x="516" y="156" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" fill="#e2e6fb">SSH · your network or your VPN</text>
+<text x="516" y="200" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13.5" fill="#8b95c0">your machine checked by fingerprint · your phone approved by you</text>
+</svg></div>
+<dl class="ledger">
+<div><dt>Your phone's key</dt><dd>Created on the phone in its secure hardware (StrongBox or the TEE). It can't be exported, so it never leaves the phone.</dd></div>
+<div><dt>Your machine</dt><dd>The pairing code carries your machine's SSH fingerprints. If anything else answers, Paddock refuses to connect.</dd></div>
+<div><dt>Your approval</dt><dd>Nothing is added to your machine until you compare eight characters and press <code>a</code>. Reject is the default.</dd></div>
+<div><dt>What changes</dt><dd>One line in <code>authorized_keys</code>, added once. Delete that line to unpair the phone.</dd></div>
+<div><dt>The popup</dt><dd>Listens on your local network only while it's open, accepts one public key, and never runs anything it receives.</dd></div>
+<div><dt>Helper scripts</dt><dd>The small scripts Paddock uses on your machine are checked by hash before every run. An edited copy is never used.</dd></div>
+<div><dt>Alerts</dt><dd>Carry no command, code or agent output, only that something on your machine needs you.</dd></div>
+<div><dt>Your data</dt><dd>No analytics, no tracking, no cloud. Paddock is open source under Apache-2.0.</dd></div>
+</dl>
+</section>
+
+<section class="blk wrap" id="faq">
+<p class="kick"><span class="dot blue"></span>Questions</p>
+<h2 class="h2">FAQ</h2>
+<div class="faq">
+<details><summary>Which agents does it work with?</summary><p>Every agent herdr runs and reports: Claude Code, Codex, OpenCode, Gemini, Copilot, Cursor, pi, amp and more. Yes and No on the phone are only for Claude Code's permission prompts. Any other agent, or any other question, you answer in the terminal view, with the same key strip.</p></details>
+<details><summary>Do I need a server or an account?</summary><p>No. Paddock connects straight to your machine over SSH, using a key it creates on your phone. There is nothing to sign up for and nothing in between.</p></details>
+<details><summary>Does it work when I'm away from home?</summary><p>Yes, as long as your phone can reach your machine. A VPN such as Tailscale or WireGuard is the easiest way. Pairing itself happens once, on your local network.</p></details>
+<details><summary>Will I get alerts when the app is closed?</summary><p>Yes, through the ntfy app or a UnifiedPush distributor, fed by a small relay you run on your machine. Delivery is best effort: battery savers and the network can delay an alert. While Paddock is open, it watches by itself.</p></details>
+<details><summary>Can my phone take over my desktop terminal?</summary><p>Only when you ask. Watching a pane is read-only. Taking control is a separate tap and you release it with another. Paddock joins at your terminal's own size and resizes it only if you ask.</p></details>
+<details><summary>How do I set up Yes and No for Claude Code?</summary><p>Once, from Settings, Guarded answers in the app (a Pro feature). Paddock installs two small scripts after you confirm, then shows a setup command to run and the hook entry to add to Claude Code's settings; it never edits those settings itself. Start a new Claude Code session afterwards. Until it is set up, the alert still arrives and you answer in the terminal view.</p></details>
+<details><summary>What does it cost?</summary><p>Paddock is open source. The free version covers watching, alerts, prompts, the terminal, Activity and Wake-on-LAN. Yes and No for Claude Code, starting agents, stopping or deleting sessions, widgets and switching between saved machines are Pro, planned for the Google Play version; the free builds leave them out. Anyone can build everything from source.</p></details>
+<details><summary>Is there an iPhone version?</summary><p>It is planned. For now Paddock is Android only.</p></details>
+<details><summary>Does the machine side run on macOS?</summary><p>Yes: turn on Remote Login so your phone has an SSH server to reach. Linux is what the plugin is tested on; macOS support is new and hasn't been run on a real Mac yet.</p></details>
+<details><summary>Is Paddock made by herdr?</summary><p>No. Paddock is independent and is not affiliated with, endorsed by or sponsored by herdr or its authors.</p></details>
+</div>
+</section>
+
+<section class="blk wrap" id="get">
+<p class="kick"><span class="dot green"></span>Get Paddock</p>
+<h2 class="h2">Start with the plugin.</h2>
+<dl class="avail">
+<div><dt><span class="dot green"></span>herdr plugin</dt><dd><b>Available now.</b> Pairs a phone from one popup and carries the app's control and alert scripts. <a href="https://github.com/tuthan/herdr-plugin-paddock">Source on GitHub</a>.</dd></div>
+<div><dt><span class="dot amber"></span>Android app</dt><dd><b>In testing.</b> Not published yet. Free builds are planned for GitHub and F-Droid.</dd></div>
+<div><dt><span class="dot"></span>iPhone</dt><dd><b>Planned.</b></dd></div>
+</dl>
+</section>
+</main>
+<footer><div class="wrap">
+<p>Paddock is independent and is not affiliated with, endorsed by or sponsored by herdr or its authors.</p>
+<p>Screens show example content. Apache-2.0.</p>
+</div></footer>
+<script src="assets/data.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/reel.js"></script>
+<script src="assets/audio.js"></script>
+<script src="assets/page.js"></script>
+</body>
+</html>
