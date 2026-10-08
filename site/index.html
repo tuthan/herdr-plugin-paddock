@@ -130,9 +130,10 @@
 <p class="copy">No passwords to type and no keys to copy by hand. Install the plugin once, then pair from a popup in herdr.</p>
 <ol class="steps">
 <li><b>Install the plugin</b><span>On the machine that runs herdr:</span><span class="cmd"><code id="cmdInstall">herdr plugin install tuthan/herdr-plugin-paddock</code><button class="copybtn" type="button" data-copy="cmdInstall">Copy</button></span></li>
-<li><b>Open the popup</b><span>Run <code>Paddock: pair a phone</code> from a key binding, or with <code>herdr plugin action invoke pair --plugin tuthan.paddock</code>. It shows a QR code.</span></li>
-<li><b>Scan and send</b><span>In Paddock, tap <b>Scan the code on the desktop</b>, then <b>Send the key</b>. The address, user, session and your machine's fingerprint fill in for you.</span></li>
-<li><b>Compare and approve</b><span>Check the eight highlighted characters match on both screens, press <code>a</code> in the popup, then tap <b>Connect</b>.</span></li>
+<li><b>Open the popup</b><span>Run <code>Paddock: pair a phone</code> from a key binding, or with <code>herdr plugin action invoke pair --plugin tuthan.paddock</code>. Press Enter to accept the address it suggests. It shows a QR code.</span></li>
+<li><b>Scan and send</b><span>In Paddock, tap <b>Scan the code on the desktop</b>. The address, user, session and your machine's fingerprint fill in for you. Tap <b>Create this phone's key</b> if the phone has none, then <b>Send the key</b>.</span></li>
+<li><b>Compare and approve</b><span>Check the eight highlighted characters match the <b>Key fingerprint</b> on the phone, then press <code>a</code> and Enter in the popup. Anything else rejects.</span></li>
+<li><b>Connect</b><span>On the phone, tap <b>Connect</b>. It shows your machine's fingerprint, the same one as in the pairing code: tap <b>Trust and connect</b>.</span></li>
 </ol>
 <div class="pairvis" aria-hidden="true">
 <div class="popup">
@@ -152,9 +153,9 @@
 </div>
 <p class="note">Other ways in: paste the key line into the popup, show it to the desktop's webcam, or run the one-line authorize command the app gives you. You can also type the address yourself or let Paddock find the machine on your network.</p>
 <dl class="needs">
-<div><dt>On your machine</dt><dd>herdr 0.9.1 or newer, an SSH server your phone can reach, and Python 3 (3.11 or newer for alerts and for Yes and No in Claude Code). Linux or macOS.</dd></div>
-<div><dt>Optional</dt><dd><code>qrencode</code> to draw the QR in the popup, <code>zbar</code> for the webcam.</dd></div>
-<div><dt>Away from home</dt><dd>Use a VPN such as Tailscale or WireGuard so your phone can still reach your machine.</dd></div>
+<div><dt>On your machine</dt><dd>herdr 0.9.1 or newer, a running SSH server, and Python 3 (3.11 or newer for alerts and for Yes and No in Claude Code). Linux or macOS.</dd></div>
+<div><dt>Recommended</dt><dd><code>qrencode</code> to draw the QR in the popup (<code>zbar</code> too if you want the webcam).</dd></div>
+<div><dt>Network</dt><dd>Phone and machine on the same network while you pair, not a guest network. Away from home, use a VPN such as Tailscale or WireGuard so your phone can still reach your machine.</dd></div>
 </dl>
 </section>
 
