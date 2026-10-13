@@ -522,6 +522,7 @@ html.render .stage{position:fixed;left:0;top:0;transform:none}
 .clipplay:hover .disc{transform:scale(1.06);background:var(--accent-hi)}
 .clipplay .lbl{font:600 15px var(--body);background:rgba(15,15,20,.82);border:1px solid var(--hair2);padding:9px 16px;border-radius:999px;white-space:nowrap}
 .clipplay .lbl b{font:500 14px var(--mono);color:var(--accent-hi);margin-left:8px}
+.clipplay .lbl svg{width:17px;height:17px;margin-left:10px;vertical-align:-3px;color:var(--dim)}
 .clipplay:focus-visible{outline:2px solid var(--accent-hi);outline-offset:4px}
 .clipbox.playing .clipplay{display:none}
 @media (prefers-reduced-motion:no-preference){.clipplay .disc{animation:clipPulse 2.6s ease-out infinite}@keyframes clipPulse{0%{box-shadow:0 10px 34px rgba(122,162,247,.5),0 0 0 0 rgba(122,162,247,.5)}70%,100%{box-shadow:0 10px 34px rgba(122,162,247,.5),0 0 0 22px rgba(122,162,247,0)}}}
