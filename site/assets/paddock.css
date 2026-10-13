@@ -509,3 +509,12 @@ html.render .stage{position:fixed;left:0;top:0;transform:none}
 .ui .nt .acts{display:flex;gap:22px;margin-top:6px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#7aa2f7}
 .steps span code{white-space:normal;overflow-wrap:anywhere}
 .steps span b{color:var(--title);font-weight:600}
+
+/* ---------- the real app: the demo recording ---------- */
+.clipwrap{display:flex;justify-content:center}
+.clip{display:block;width:min(100%,300px);aspect-ratio:1/2;object-fit:contain;border-radius:28px;border:1px solid var(--line);background:var(--slab);box-shadow:0 24px 60px -24px rgba(0,0,0,.7)}
+.clip p{padding:24px;font-size:15px;color:var(--dim)}
+.clipsteps{margin:20px 0 0;max-width:36em;font-size:15px;color:var(--dim)}
+.clipsteps summary{cursor:pointer;color:var(--text)}
+.clipsteps ol{margin:12px 0 0;padding-left:22px;line-height:1.55}
+.clipsteps li{margin:4px 0}

@@ -20,7 +20,7 @@ About two minutes. Do steps 1 and 2 once; after that, pairing a phone is steps 3
   Afterwards a VPN such as Tailscale lets the phone connect from anywhere.
 - **`qrencode`** is installed, so the popup can draw its QR code: `sudo pacman -S qrencode`, `sudo apt install qrencode` or `brew install qrencode`.
   Without it you open or paste the link on the phone instead of scanning it.
-- **The Paddock app** is on the phone.
+- **The Paddock app** is on the phone. No machine to point it at yet, or want to look first? Tap **Try a demo** on its first screen: an example machine, nothing connects.
 
 ### 1. Install the plugin
 
@@ -122,8 +122,8 @@ The programs also run on their own, which is how the tests drive them:
 ## Platforms
 
 Linux and macOS (`platforms = ["linux", "macos"]` in the manifest). The Linux paths are the ones run for real: the live check against a disposable
-herdr session, and a phone. **The macOS paths have not been run on a Mac.** They are unit-tested (`tests/test_macos.py`) against stand-ins that print
-what `route`, `ipconfig`, `ifconfig`, `pbcopy` and `socketfilterfw` print, and the two host scripts use only POSIX calls. On macOS:
+herdr session, and a phone. **The macOS popups have not been run on a Mac.** The Mac paths (`pair`, `authorize-phone`, `show-pairing`) are unit-tested (`tests/test_macos.py`) against stand-ins that print
+what `route`, `ipconfig`, `ifconfig`, `pbcopy` and `socketfilterfw` print, and the two host scripts use only POSIX calls. The two host scripts themselves have run on a Mac, with the app connected to it (herdr 0.9.3, Homebrew on Apple silicon): the relay and the Terminal tab worked. On macOS:
 
 - Turn on **Remote Login** (System Settings > General > Sharing), or the phone has nothing to connect to. Host keys are read from `/etc/ssh` and the
   key goes to `~/.ssh/authorized_keys`, as on Linux.
@@ -213,6 +213,16 @@ The plugin never runs them itself.
 `site/` is the product page, published at <https://tuthan.github.io/herdr-plugin-paddock/> by `.github/workflows/pages.yml` on
 every push to `main` that changes it. It is static HTML, CSS and JavaScript with no build step; open `site/index.html` to view it
 locally. The plugin never reads it.
+
+## What else the app puts on this machine
+
+The plugin ships two scripts, `host/paddock-relay.py` and `host/paddock-control.py`, and does nothing else on the machine beyond the three popups. The app does more on its own, over SSH, after you confirm it, and none of it needs the plugin:
+
+- **Alerts** (optional): `~/.local/share/paddock/paddock-alert-relay.py`, `~/.config/paddock/alert-relay.toml` and a systemd user unit, set up in one step from the machine's page in the app.
+- **Yes and No answers** (optional, Pro): two small scripts for Claude Code, Codex and opencode, and the hook entry you add yourself.
+- **Files** (nothing to install): `<agent folder>/.paddock/inbox/` (with a `.gitignore` of `*`), a drop folder `~/Paddock` by default, and a read of `.paddock/outbox/`. At most 25 MB each way; a file named like an agent's instruction file is refused.
+
+Each is described, with its hash and how to undo it, in the app repository's `docs/host-setup.md`; files are in `docs/files.md`. The Privacy section below is about this plugin only.
 
 ## Tests
 
