@@ -12,7 +12,7 @@
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="#top" aria-label="Paddock, back to top"><svg viewBox="0 0 108 108" aria-hidden="true"><defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="108" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#292e42"/><stop offset="1" stop-color="#16161e"/></linearGradient><linearGradient id="bp1" x1="0" y1="29" x2="0" y2="78" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#a4bdff"/><stop offset="1" stop-color="#5f82db"/></linearGradient></defs><rect width="108" height="108" fill="url(#bg1)"/><path d="M40.5 29V78M40.5 36H54.5a12.5 12.5 0 0 1 0 25H40.5" fill="none" stroke="url(#bp1)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="53.5" cy="48.5" r="5" fill="#f7768e"/></svg>Paddock</a>
-<nav aria-label="Sections"><a href="#how">How it works</a><a href="#features">Features</a><a href="#install">Pairing</a><a href="#security">Security</a><a href="#faq">FAQ</a></nav>
+<nav aria-label="Sections"><a href="#how">How it works</a><a href="#app">Demo</a><a href="#features">Features</a><a href="#install">Pairing</a><a href="#security">Security</a><a href="#faq">FAQ</a></nav>
 <a class="pbtn pri navcta" href="#install">Get started</a>
 </div></header>
 
@@ -24,7 +24,7 @@
 <p class="lede"><strong>Paddock</strong> puts every coding agent running in <a href="https://herdr.dev">herdr</a> on your phone. When one stops to ask for a permission or a decision, you get an alert, read exactly what it wants, and answer. Then the work keeps moving while you are away from your desk.</p>
 <div class="hero-side">
 <p class="lede small">It connects straight to your machine over SSH. No cloud, no account, no relay.</p>
-<div class="ctas"><a class="pbtn pri" href="#install">Pair your phone</a><a class="pbtn" href="#features">See what it does</a></div>
+<div class="ctas"><a class="pbtn pri" href="#install">Pair your phone</a><a class="pbtn" href="#features">See what it does</a><a class="pbtn" href="#app"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Watch the demo</a></div>
 </div>
 </div>
 
@@ -91,26 +91,28 @@
 <section class="blk wrap" id="app">
 <div class="two">
 <div>
-<p class="kick"><span class="dot green"></span>The app</p>
+<p class="kick"><span class="dot green"></span>The app<span aria-hidden="true">·</span>1:21 video</p>
 <h2 class="h2">Look around before you pair anything.</h2>
 <p class="copy">Paddock has a demo machine: four example agents on a script, nothing running on a computer and no network used. Tap <b>Try a demo</b> on the first screen, watch an agent stop to ask, read what it wants, send a prompt to another and see it answer. Remove it from its page when you are done.</p>
-<p class="copy">The recording shows exactly that, from the demo machine in the app. The agents and their output are examples.</p>
-<details class="clipsteps"><summary>What the recording shows</summary>
-<ol>
-<li>The first screen, then Try a demo.</li>
-<li>Home with one agent done, one working and two ready; the working agent's output and its read-only terminal.</li>
-<li>Twenty seconds in, a Codex agent blocks. Home puts it first, with the question.</li>
-<li>Review prompt opens its terminal on the question.</li>
-<li>An idle agent's Output, a prompt typed and sent, the agent working and then done.</li>
-<li>Spaces, and Home again.</li>
-</ol>
-</details>
+<div class="ctas"><button class="pbtn pri" id="clipGo" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Watch the demo <span class="mono">1:21</span></button></div>
+<p class="note">Recorded from the demo machine in the app, with no sound. The agents and their output are examples.</p>
 </div>
 <div class="clipwrap">
-<video class="clip" controls playsinline preload="metadata" poster="assets/demo-poster.jpg" aria-label="A recording of Paddock's demo machine, 1 minute 21 seconds, no sound.">
+<div class="clipbox" id="clipBox">
+<video class="clip" id="clip" controls playsinline preload="metadata" poster="assets/demo-poster.jpg" aria-label="A recording of Paddock's demo machine, 1 minute 21 seconds, no sound.">
 <source src="assets/demo.mp4" type="video/mp4">
 <p>Your browser cannot play this video. <a href="assets/demo.mp4">Download the recording</a> (MP4, 1 MB).</p>
 </video>
+<button class="clipplay" id="clipPlay" type="button" hidden aria-label="Play the recording of the demo, 1 minute 21 seconds"><span class="disc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span><span class="lbl"><span class="lt">Watch the demo</span><b>1:21</b></span></button>
+</div>
+<ol class="chapters clipchap" id="clipChapters" aria-label="Chapters of the recording">
+<li><button type="button" data-t="0"><span class="tcode">0:00</span><span class="nm">Open the demo</span></button></li>
+<li><button type="button" data-t="10"><span class="tcode">0:10</span><span class="nm">An agent works</span></button></li>
+<li><button type="button" data-t="26"><span class="tcode">0:26</span><span class="nm">Another one blocks</span></button></li>
+<li><button type="button" data-t="33"><span class="tcode">0:33</span><span class="nm">Read what it asks</span></button></li>
+<li><button type="button" data-t="51"><span class="tcode">0:51</span><span class="nm">Send a prompt</span></button></li>
+<li><button type="button" data-t="63"><span class="tcode">1:03</span><span class="nm">See it answer</span></button></li>
+</ol>
 </div>
 </div>
 </section>
@@ -256,5 +258,6 @@
 <script src="assets/reel.js"></script>
 <script src="assets/audio.js"></script>
 <script src="assets/page.js"></script>
+<script src="assets/clip.js"></script>
 </body>
 </html>

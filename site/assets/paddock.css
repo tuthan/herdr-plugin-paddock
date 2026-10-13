@@ -511,10 +511,21 @@ html.render .stage{position:fixed;left:0;top:0;transform:none}
 .steps span b{color:var(--title);font-weight:600}
 
 /* ---------- the real app: the demo recording ---------- */
-.clipwrap{display:flex;justify-content:center}
-.clip{display:block;width:min(100%,300px);aspect-ratio:1/2;object-fit:contain;border-radius:28px;border:1px solid var(--line);background:var(--slab);box-shadow:0 24px 60px -24px rgba(0,0,0,.7)}
+.clipwrap{display:flex;flex-direction:column;align-items:center}
+.clipbox{position:relative;width:min(100%,320px)}
+.clip{display:block;width:100%;aspect-ratio:1/2;object-fit:contain;border-radius:28px;border:1px solid var(--line);background:var(--slab);box-shadow:0 24px 60px -24px rgba(0,0,0,.7)}
 .clip p{padding:24px;font-size:15px;color:var(--dim)}
-.clipsteps{margin:20px 0 0;max-width:36em;font-size:15px;color:var(--dim)}
-.clipsteps summary{cursor:pointer;color:var(--text)}
-.clipsteps ol{margin:12px 0 0;padding-left:22px;line-height:1.55}
-.clipsteps li{margin:4px 0}
+.clipplay{all:unset;box-sizing:border-box;position:absolute;inset:0;border-radius:28px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:linear-gradient(180deg,rgba(15,15,20,.10),rgba(15,15,20,.62));color:var(--title)}
+.clipplay[hidden]{display:none}
+.clipplay .disc{width:84px;height:84px;border-radius:50%;background:var(--accent);color:var(--ground);display:grid;place-items:center;box-shadow:0 10px 34px rgba(122,162,247,.5);transition:transform .15s,background .15s}
+.clipplay .disc svg{width:36px;height:36px;margin-left:4px}
+.clipplay:hover .disc{transform:scale(1.06);background:var(--accent-hi)}
+.clipplay .lbl{font:600 15px var(--body);background:rgba(15,15,20,.82);border:1px solid var(--hair2);padding:9px 16px;border-radius:999px;white-space:nowrap}
+.clipplay .lbl b{font:500 14px var(--mono);color:var(--accent-hi);margin-left:8px}
+.clipplay:focus-visible{outline:2px solid var(--accent-hi);outline-offset:4px}
+.clipbox.playing .clipplay{display:none}
+@media (prefers-reduced-motion:no-preference){.clipplay .disc{animation:clipPulse 2.6s ease-out infinite}@keyframes clipPulse{0%{box-shadow:0 10px 34px rgba(122,162,247,.5),0 0 0 0 rgba(122,162,247,.5)}70%,100%{box-shadow:0 10px 34px rgba(122,162,247,.5),0 0 0 22px rgba(122,162,247,0)}}}
+#app .ctas{margin:26px 0 0}
+#app .ctas .mono{font-size:13px;opacity:.75}
+.clipchap{grid-template-columns:repeat(2,minmax(0,1fr));width:min(100%,320px);margin-top:14px}
+@media (max-width:520px){.clipchap{grid-template-columns:repeat(2,minmax(0,1fr))}}
